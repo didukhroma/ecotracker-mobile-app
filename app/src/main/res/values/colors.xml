@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lime_1">#FCFFE6</color>
+    <color name="lime_2">#F4FFB8</color>
+    <color name="lime_3">#EAFF8F</color>
+    <color name="lime_4">#D3F261</color>
+    <color name="lime_5">#BAE637</color>
+    <color name="lime_6">#A0D911</color>
+    <color name="lime_7">#7CB305</color>
+    <color name="lime_8">#5B8C00</color>
+    <color name="lime_9">#3F6600</color>
+    <color name="lime_10">#254000</color>
+    <color name="chart_blue">#0C2B7E</color>
+    <color name="chart_light_blue">#5C72BE</color>
+    <color name="chart_green">#008061</color>
+    <color name="chart_yellow">#F5DD79</color>
+    <color name="chart_light_red">#FAA1A4</color>
+    <color name="chart_red">#EA3E48</color>
+</resources>
