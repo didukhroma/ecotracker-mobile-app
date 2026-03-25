@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <ImageView
+        android:id="@+id/achievementImage"
+        android:layout_width="match_parent"
+        android:layout_height="82dp"
+        android:background="#CAE897"
+        android:scaleType="centerCrop" />
+
+    <TextView
+        android:id="@+id/achievementTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/lime_10"
+        android:textSize="11sp" />
+</LinearLayout>

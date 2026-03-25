@@ -7,6 +7,33 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.EcoTracker">
         <activity
+            android:name=".CommunityProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AchievementReceivedActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AchievementDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AchievementsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LearningLessonActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LearningCategoryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LearningPlatformActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PersonalTipsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MyProgressActivity"
+            android:exported="false" />
+        <activity
             android:name=".HomeActivity"
             android:exported="false" />
         <activity

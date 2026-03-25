@@ -1,100 +1,80 @@
-# EcoTracker Mobile App
+﻿# EcoTracker Mobile App
 
-EcoTracker is an Android application written in Kotlin with XML layouts and Material Components.
+Native Android app built with Kotlin + XML (Material Components).
 
-The project currently contains a mock onboarding and authentication flow based on custom design screens, including validation states, navigation between screens, and placeholder destinations for the next product steps.
+## Implemented Features
+
+- 5-step onboarding questionnaire with validation and aggregated payload collection.
+- Home screen with sidebar navigation and server-ready data model.
+- My Progress screen (charts/sections mock, server-ready repository layer).
+- Personal Tips screen (list of recommendations with selection state).
+- Learning Platform:
+  - category overview
+  - category lessons list
+  - lesson details
+  - persistent lesson completion via `SharedPreferences`
+- Achievements:
+  - achievements grid (locked/unlocked/claimed)
+  - achievement detail
+  - achievement received screen with claim action
+  - persistent claimed state via `SharedPreferences`
+- Community profile placeholder screen with "In development" label.
 
 ## Tech Stack
 
 - Kotlin
 - Android Views (XML)
 - Material Components
+- RecyclerView
+- DrawerLayout
 - Gradle Kotlin DSL
-- Min SDK 24
-- Target SDK 34
 
-## Current Flow
+## Android Config
 
-The app currently includes these screens:
-
-1. Loading
-2. Onboarding screen 1
-3. Onboarding screen 2
-4. Sign up
-5. Sign in
-6. Forgot password
-7. Greeting
-8. Question
-9. Home placeholder
-
-Implemented behavior:
-
-- onboarding navigation between screens
-- sign in validation for email and password
-- sign up validation for name, email, and password
-- forgot password email validation
-- mocked sign in, sign up, forgot password, Google, and Facebook actions
-- skip onboarding behavior
+- `minSdk = 24`
+- `targetSdk = 34`
+- `compileSdk = 34`
 
 ## Project Structure
 
-Main Android source files live in:
+- `app/src/main/java/com/example/ecotracker` — activities, repositories, local stores
+- `app/src/main/res/layout` — screen and item XML layouts
+- `app/src/main/res/values` — strings, arrays, colors, themes
+- `app/src/main/assets` — design images (used by onboarding/home/learning)
 
-- `app/src/main/java/com/example/ecotracker`
-- `app/src/main/res/layout`
-- `app/src/main/res/values`
-- `app/src/main/assets`
+## Build & Run
 
-Design images used by the app are stored in:
+### Android Studio
 
-- `app/src/main/assets/loading.png`
-- `app/src/main/assets/screen_2.png`
-- `app/src/main/assets/screen_3.png`
-- `app/src/main/assets/screen_4.png`
-- `app/src/main/assets/screen_5.png`
-- `app/src/main/assets/forgot.png`
-- `app/src/main/assets/greeting.png`
-- `app/src/main/assets/question.png`
+1. Open project folder.
+2. Wait for Gradle sync.
+3. Run `app` configuration on emulator/device.
 
-## Run In Android Studio
-
-1. Open the folder in Android Studio.
-2. Wait for Gradle Sync to finish.
-3. Select the `app` run configuration.
-4. Start an emulator or connect a device.
-5. Press `Run`.
-
-## Run From Terminal
-
-Build debug APK:
+### Terminal (Windows)
 
 ```powershell
 .\gradlew.bat assembleDebug
-```
-
-Install debug build on a connected device or emulator:
-
-```powershell
 .\gradlew.bat installDebug
 ```
 
-## Output
-
-Generated debug APK:
+Debug APK output:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Notes
+## Data & Integration Notes
 
-- Authentication is mocked for now.
-- Social sign in buttons are placeholders.
-- The home screen after onboarding is still a placeholder destination.
-- The project was migrated from an older starter app into a native Android structure.
+- Current API/data is mocked through repository objects:
+  - `HomeRepository`
+  - `MyProgressRepository`
+  - `PersonalTipsRepository`
+  - `LearningRepository`
+  - `AchievementsRepository`
+- Onboarding answers are collected into a single JSON payload and passed forward.
+- Progress and achievement claim states are stored locally with `SharedPreferences`.
 
-## Git
+## Repository
 
-Repository:
-
-`https://github.com/didukhroma/ecotracker-mobile-app.git`
+- Remote: `https://github.com/didukhroma/ecotracker-mobile-app.git`
+- Branch: `master`
