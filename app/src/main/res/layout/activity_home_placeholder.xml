@@ -39,6 +39,17 @@
                 android:textColor="@color/lime_10"
                 android:textSize="48sp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/completeOnboardingButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/complete_onboarding"
+                android:textAllCaps="false"
+                android:visibility="gone"
+                app:backgroundTint="@color/lime_9"
+                app:cornerRadius="6dp" />
+
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

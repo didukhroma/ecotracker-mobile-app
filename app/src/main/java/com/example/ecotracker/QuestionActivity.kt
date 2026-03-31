@@ -210,7 +210,10 @@ class QuestionActivity : AppCompatActivity() {
             }
         }
 
-        skipLink.setOnClickListener { openHome() }
+        skipLink.setOnClickListener {
+            storeCurrentStepAnswers()
+            finishOnboarding(completed = false)
+        }
 
         nextButton.setOnClickListener {
             if (validateCurrentStep(showErrors = true)) {
@@ -219,7 +222,7 @@ class QuestionActivity : AppCompatActivity() {
                     currentStep++
                     renderStep()
                 } else {
-                    finishOnboarding()
+                    finishOnboarding(completed = true)
                 }
             }
         }
@@ -446,9 +449,11 @@ class QuestionActivity : AppCompatActivity() {
         }
     }
 
-    private fun finishOnboarding() {
+    private fun finishOnboarding(completed: Boolean) {
         val payload = buildPayloadJson(answers)
         OnboardingSessionStore.latestPayload = payload
+        FirebaseSync.saveOnboardingAnswers(this, answers, payload, completed)
+        FirebaseSync.syncLearningProgress(this)
 
         openHome(payload)
     }
@@ -459,8 +464,8 @@ class QuestionActivity : AppCompatActivity() {
             .put("lastName", data.lastName)
             .put("country", data.country)
             .put("drivesCar", data.drivesCar)
-            .put("drivingFrequency", data.drivingFrequency ?: JSONObject.NULL)
-            .put("carType", data.carType ?: JSONObject.NULL)
+            .put("drivingFrequency", data.drivingFrequency.orEmpty())
+            .put("carType", data.carType.orEmpty())
             .put("buildingType", data.buildingType)
             .put("bedrooms", data.bedrooms)
             .put("peopleExcludingSelf", data.peopleExcludingSelf)

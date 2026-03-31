@@ -43,6 +43,14 @@ class MainActivity : AppCompatActivity() {
         renderScreen(OnboardingScreen.SCREEN_2)
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (FirebaseSync.hasAuthenticatedUser(this)) {
+            startActivity(Intent(this, HomeActivity::class.java))
+            finish()
+        }
+    }
+
     private fun renderScreen(screen: OnboardingScreen) {
         currentScreen = screen
         when (screen) {

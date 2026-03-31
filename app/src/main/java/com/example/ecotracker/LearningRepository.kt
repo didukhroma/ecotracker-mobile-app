@@ -166,6 +166,7 @@ object LearningProgressStore {
             .edit()
             .putStringSet(KEY_COMPLETED_IDS, updated)
             .apply()
+        FirebaseSync.syncLearningProgress(context)
     }
 
     fun completedCount(context: Context, category: LearningCategory): Int {
@@ -180,7 +181,16 @@ object LearningProgressStore {
 
     fun getTotalCompleted(context: Context): Int = getCompletedIds(context).size
 
-    private fun getCompletedIds(context: Context): Set<String> {
+    fun getCompletedIds(context: Context): Set<String> = readCompletedIds(context)
+
+    fun setCompletedIds(context: Context, ids: Set<String>) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putStringSet(KEY_COMPLETED_IDS, ids)
+            .apply()
+    }
+
+    private fun readCompletedIds(context: Context): Set<String> {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getStringSet(KEY_COMPLETED_IDS, emptySet())
             ?.toSet()

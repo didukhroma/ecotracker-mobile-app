@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import org.json.JSONObject
 
@@ -46,9 +47,9 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.logoutText).setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-            })
+            FirebaseSync.signOut()
+            HomeCacheStore.invalidate(this)
+            OnboardingSessionStore.latestPayload = null
             finishAffinity()
         }
 
@@ -57,8 +58,7 @@ class HomeActivity : AppCompatActivity() {
         val onboardingPayload = intent.getStringExtra(QuestionActivity.EXTRA_ONBOARDING_PAYLOAD)
             ?: OnboardingSessionStore.latestPayload
 
-        val homeData = HomeRepository.getHomeData(onboardingPayload)
-        bindHomeData(homeData)
+        loadHomeData(onboardingPayload)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -71,6 +71,17 @@ class HomeActivity : AppCompatActivity() {
         })
     }
 
+    private fun loadHomeData(onboardingPayload: String?) {
+        FirebaseSync.fetchHomeData(this) { remoteData ->
+            val fallbackData = HomeRepository.defaultHomeData(
+                firstName = HomeRepository.parseFirstName(onboardingPayload).orEmpty(),
+                onboardingCompleted = false
+            )
+            val resolvedData = if (remoteData.userName.isBlank()) fallbackData else remoteData
+            bindHomeData(resolvedData)
+        }
+    }
+
     private fun bindHomeData(data: HomeData) {
         findViewById<TextView>(R.id.greetingText).text = getString(R.string.home_greeting_format, data.userName)
         findViewById<TextView>(R.id.tipsText).text = data.tips.joinToString("\n") { "• $it" }
@@ -81,6 +92,12 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.sidebarName).text = data.userName
         findViewById<TextView>(R.id.sidebarQuote).text = data.quote
+
+        val onboardingBanner = findViewById<TextView>(R.id.completeOnboardingButton)
+        onboardingBanner.isVisible = !data.onboardingCompleted
+        onboardingBanner.setOnClickListener {
+            startActivity(Intent(this, QuestionActivity::class.java))
+        }
     }
 
     private fun ImageView.loadAsset(assetName: String) {
@@ -97,13 +114,14 @@ data class HomeData(
     val challengesParticipated: String,
     val treesSaved: String,
     val emissionReduced: String,
-    val quote: String
+    val quote: String,
+    val onboardingCompleted: Boolean,
+    val cachedAtMs: Long = 0L
 )
 
 object HomeRepository {
     // Integration point: replace with real server request when backend endpoint is ready.
-    fun getHomeData(onboardingPayload: String?): HomeData {
-        val firstName = parseFirstName(onboardingPayload)
+    fun defaultHomeData(firstName: String? = null, onboardingCompleted: Boolean = false): HomeData {
         val displayName = if (firstName.isNullOrBlank()) "John" else firstName
 
         return HomeData(
@@ -118,11 +136,12 @@ object HomeRepository {
             challengesParticipated = "3",
             treesSaved = "100",
             emissionReduced = "100 kg",
-            quote = "Small steps, big impact - reduce your footprint!"
+            quote = "Small steps, big impact - reduce your footprint!",
+            onboardingCompleted = onboardingCompleted
         )
     }
 
-    private fun parseFirstName(payload: String?): String? {
+    fun parseFirstName(payload: String?): String? {
         return try {
             if (payload.isNullOrBlank()) null else JSONObject(payload).optString("firstName").takeIf { it.isNotBlank() }
         } catch (_: Exception) {

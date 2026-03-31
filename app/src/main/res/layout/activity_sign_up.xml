@@ -169,48 +169,5 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/passwordLayout" />
 
-        <LinearLayout
-            android:id="@+id/socialRow"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="center"
-            android:orientation="horizontal"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/signUpButton">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/googleButton"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/google_symbol"
-                android:textAllCaps="false"
-                android:textColor="@color/chart_red"
-                android:textSize="28sp"
-                app:backgroundTint="@color/lime_3"
-                app:cornerRadius="8dp"
-                app:strokeColor="@color/lime_8"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/facebookButton"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_marginStart="18dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/facebook_symbol"
-                android:textAllCaps="false"
-                android:textColor="@color/chart_blue"
-                android:textSize="30sp"
-                app:backgroundTint="@color/lime_3"
-                app:cornerRadius="8dp"
-                app:strokeColor="@color/lime_8"
-                app:strokeWidth="1dp" />
-        </LinearLayout>
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

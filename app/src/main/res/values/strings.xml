@@ -73,6 +73,7 @@
     <string name="home_greeting_placeholder">Hello, John</string>
     <string name="home_greeting_format">Hello, %1$s</string>
     <string name="home_everyday_tips">Everyday tips</string>
+    <string name="complete_onboarding">Complete onboarding</string>
     <string name="learn_more">Learn more</string>
     <string name="home_your_footprint">Your footprint</string>
     <string name="home_challenges_participated">Challenges participated</string>
@@ -146,11 +147,13 @@
     <string name="error_select_diet">Please select at least one option</string>
     <string name="error_select_goal">Please select at least one goal</string>
     <string name="error_select_building_type">Please select your building type</string>
-    <string name="sign_in_success_mock">Mock sign in successful</string>
-    <string name="sign_up_success_mock">Mock sign up successful</string>
-    <string name="forgot_password_success_mock">Mock reset email sent</string>
-    <string name="google_sign_in_mock">Google sign in will be implemented later</string>
-    <string name="facebook_sign_in_mock">Facebook sign in will be implemented later</string>
-    <string name="google_symbol">G</string>
-    <string name="facebook_symbol">f</string>
+    <string name="firebase_not_configured">Firebase is not configured for this build.</string>
+    <string name="firebase_not_configured_fallback">Firebase not configured. Using local flow.</string>
+    <string name="forgot_password_email_sent">Password reset email sent.</string>
+    <string name="firebase_error_generic">Authentication failed. Please try again.</string>
+    <string name="firebase_error_user_exists">This email is already registered.</string>
+    <string name="firebase_error_invalid_credentials">Invalid credentials.</string>
+    <string name="firebase_error_wrong_password">Wrong password.</string>
+    <string name="firebase_error_user_not_found">User not found.</string>
+    <string name="firebase_error_weak_password">Password is too weak.</string>
 </resources>

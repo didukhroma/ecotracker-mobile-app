@@ -33,7 +33,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
         }
         sendEmailButton.setOnClickListener {
             if (validateEmail(showErrors = true)) {
-                Toast.makeText(this, getString(R.string.forgot_password_success_mock), Toast.LENGTH_SHORT).show()
+                sendResetViaFirebaseOrFallback()
             }
         }
 
@@ -51,6 +51,30 @@ class ForgotPasswordActivity : AppCompatActivity() {
         val enabled = Patterns.EMAIL_ADDRESS.matcher(emailInput.text?.toString()?.trim().orEmpty()).matches()
         sendEmailButton.isEnabled = enabled
         sendEmailButton.alpha = if (enabled) 1f else 0.45f
+    }
+
+    private fun sendResetViaFirebaseOrFallback() {
+        val email = emailInput.text?.toString()?.trim().orEmpty()
+
+        if (!FirebaseSync.isAvailable(this)) {
+            Toast.makeText(this, getString(R.string.firebase_not_configured_fallback), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        sendEmailButton.isEnabled = false
+        FirebaseSync.sendPasswordReset(
+            context = this,
+            email = email,
+            onSuccess = {
+                Toast.makeText(this, getString(R.string.forgot_password_email_sent), Toast.LENGTH_SHORT).show()
+                finish()
+            },
+            onError = { message ->
+                sendEmailButton.isEnabled = true
+                updateSendButtonState()
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+        )
     }
 
     private fun ImageView.loadAsset(assetName: String) {

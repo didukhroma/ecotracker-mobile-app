@@ -27,6 +27,8 @@ Native Android app built with Kotlin + XML (Material Components).
 - Material Components
 - RecyclerView
 - DrawerLayout
+- Firebase Authentication (Email/Password)
+- Firebase Firestore
 - Gradle Kotlin DSL
 
 ## Android Config
@@ -61,6 +63,7 @@ Debug APK output:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
+app/build/outputs/apk/debug/ecotracker.apk
 ```
 
 ## Data & Integration Notes
@@ -73,6 +76,25 @@ app/build/outputs/apk/debug/app-debug.apk
   - `AchievementsRepository`
 - Onboarding answers are collected into a single JSON payload and passed forward.
 - Progress and achievement claim states are stored locally with `SharedPreferences`.
+- Firebase integration:
+  - Sign up / Sign in with Email+Password
+  - Forgot password via reset email
+  - Onboarding answers saved to Firestore (`users/{uid}/profile/onboarding`)
+  - `onboardingCompleted` boolean saved in onboarding profile document
+  - Learning progress synced to Firestore (`users/{uid}/profile/learning`)
+  - Home profile data cached locally for 15 minutes, invalidated after profile updates
+
+## Firebase Setup (Required)
+
+1. Create Android app in Firebase Console with package name: `com.example.ecotracker`.
+2. Enable `Authentication -> Sign-in method -> Email/Password`.
+3. Create Firestore database (production or test mode).
+4. Download `google-services.json` and place it here:
+   - `app/google-services.json`
+5. Sync Gradle and rebuild app.
+
+If `google-services.json` is missing, app will fall back to local flow for auth screens.
+Do not commit `app/google-services.json` to git.
 
 ## Repository
 

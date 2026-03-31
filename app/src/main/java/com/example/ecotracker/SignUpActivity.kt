@@ -50,18 +50,12 @@ class SignUpActivity : AppCompatActivity() {
             updateSignUpButtonState()
         }
 
-        findViewById<MaterialButton>(R.id.googleButton).setOnClickListener {
-            showMockMessage(getString(R.string.google_sign_in_mock))
-        }
-        findViewById<MaterialButton>(R.id.facebookButton).setOnClickListener {
-            showMockMessage(getString(R.string.facebook_sign_in_mock))
-        }
         signUpButton.setOnClickListener {
             val nameValid = validateName(showErrors = true)
             val emailValid = validateEmail(showErrors = true)
             val passwordValid = validatePassword(showErrors = true)
             if (nameValid && emailValid && passwordValid) {
-                startActivity(Intent(this, GreetingActivity::class.java))
+                registerWithFirebaseOrFallback()
             }
         }
 
@@ -103,7 +97,37 @@ class SignUpActivity : AppCompatActivity() {
         }
     }
 
-    private fun showMockMessage(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    private fun registerWithFirebaseOrFallback() {
+        val name = nameInput.text?.toString()?.trim().orEmpty()
+        val email = emailInput.text?.toString()?.trim().orEmpty()
+        val password = passwordInput.text?.toString().orEmpty()
+
+        if (!FirebaseSync.isAvailable(this)) {
+            Toast.makeText(this, getString(R.string.firebase_not_configured_fallback), Toast.LENGTH_SHORT).show()
+            openGreeting()
+            return
+        }
+
+        signUpButton.isEnabled = false
+        FirebaseSync.registerUser(
+            context = this,
+            name = name,
+            email = email,
+            password = password,
+            onSuccess = { openGreeting() },
+            onError = { message ->
+                signUpButton.isEnabled = true
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+                updateSignUpButtonState()
+            }
+        )
+    }
+
+    private fun openGreeting() {
+        startActivity(
+            Intent(this, GreetingActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+        finish()
     }
 }
