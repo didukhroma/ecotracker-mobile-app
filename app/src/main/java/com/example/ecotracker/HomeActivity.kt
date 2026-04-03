@@ -1,8 +1,11 @@
 ﻿package com.example.ecotracker
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
+import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
@@ -26,8 +29,12 @@ class HomeActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.menuButton).setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
-        findViewById<TextView>(R.id.closeSidebar).setOnClickListener {
+        findViewById<ImageView>(R.id.closeSidebar).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
+        }
+        findViewById<TextView>(R.id.sidebarCarbonTracker).setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            startActivity(Intent(this, CarbonEmissionTrackerActivity::class.java))
         }
         findViewById<TextView>(R.id.sidebarMyProgress).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -41,12 +48,19 @@ class HomeActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, PersonalTipsActivity::class.java))
         }
+        findViewById<TextView>(R.id.learnMoreText).setOnClickListener {
+            startActivity(Intent(this, PersonalTipsActivity::class.java))
+        }
         findViewById<TextView>(R.id.sidebarCommunity).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, CommunityProfileActivity::class.java))
         }
+        findViewById<TextView>(R.id.sidebarSettings).setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
 
-        findViewById<TextView>(R.id.logoutText).setOnClickListener {
+        findViewById<android.view.View>(R.id.logoutText).setOnClickListener {
             FirebaseSync.signOut()
             HomeCacheStore.invalidate(this)
             OnboardingSessionStore.latestPayload = null
@@ -83,21 +97,61 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun bindHomeData(data: HomeData) {
-        findViewById<TextView>(R.id.greetingText).text = getString(R.string.home_greeting_format, data.userName)
+        val displayName = normalizeName(data.userName)
+        val greetingName = displayName.substringBefore(" ").ifBlank { "John" }
+        findViewById<TextView>(R.id.greetingText).text = getString(R.string.home_greeting_format, greetingName)
         findViewById<TextView>(R.id.tipsText).text = data.tips.joinToString("\n") { "• $it" }
         findViewById<TextView>(R.id.footprintValueText).text = data.footprint
         findViewById<TextView>(R.id.challengesValueText).text = data.challengesParticipated
         findViewById<TextView>(R.id.treesValueText).text = data.treesSaved
         findViewById<TextView>(R.id.emissionReducedValueText).text = data.emissionReduced
 
-        findViewById<TextView>(R.id.sidebarName).text = data.userName
+        findViewById<TextView>(R.id.sidebarName).text = displayName
         findViewById<TextView>(R.id.sidebarQuote).text = data.quote
+        bindAvatar(displayName, data.photoBase64)
 
         val onboardingBanner = findViewById<TextView>(R.id.completeOnboardingButton)
         onboardingBanner.isVisible = !data.onboardingCompleted
         onboardingBanner.setOnClickListener {
             startActivity(Intent(this, QuestionActivity::class.java))
         }
+    }
+
+    private fun bindAvatar(name: String, photoBase64: String?) {
+        val avatarImage = findViewById<ImageView>(R.id.sidebarAvatarImage)
+        val avatarInitial = findViewById<TextView>(R.id.sidebarAvatarInitial)
+        val initial = name.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+        avatarInitial.text = initial
+
+        val bitmap = decodeBase64Bitmap(photoBase64)
+        if (bitmap == null) {
+            avatarImage.visibility = View.GONE
+            avatarInitial.visibility = View.VISIBLE
+            return
+        }
+        avatarImage.setImageBitmap(bitmap)
+        avatarImage.visibility = View.VISIBLE
+        avatarInitial.visibility = View.GONE
+    }
+
+    private fun decodeBase64Bitmap(photoBase64: String?): Bitmap? {
+        if (photoBase64.isNullOrBlank()) return null
+        return try {
+            val bytes = Base64.decode(photoBase64, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun normalizeName(name: String): String {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return "John"
+        return trimmed.split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { token ->
+                token.lowercase().replaceFirstChar { ch -> ch.titlecase() }
+            }
     }
 
     private fun ImageView.loadAsset(assetName: String) {
@@ -116,12 +170,17 @@ data class HomeData(
     val emissionReduced: String,
     val quote: String,
     val onboardingCompleted: Boolean,
+    val photoBase64: String? = null,
     val cachedAtMs: Long = 0L
 )
 
 object HomeRepository {
     // Integration point: replace with real server request when backend endpoint is ready.
-    fun defaultHomeData(firstName: String? = null, onboardingCompleted: Boolean = false): HomeData {
+    fun defaultHomeData(
+        firstName: String? = null,
+        onboardingCompleted: Boolean = false,
+        photoBase64: String? = null
+    ): HomeData {
         val displayName = if (firstName.isNullOrBlank()) "John" else firstName
 
         return HomeData(
@@ -132,12 +191,13 @@ object HomeRepository {
                 "Eat more vegetables",
                 "Buy less clothes"
             ),
-            footprint = "4000 kg",
-            challengesParticipated = "3",
-            treesSaved = "100",
-            emissionReduced = "100 kg",
+            footprint = "0 kg",
+            challengesParticipated = "0",
+            treesSaved = "0",
+            emissionReduced = "0 kg",
             quote = "Small steps, big impact - reduce your footprint!",
-            onboardingCompleted = onboardingCompleted
+            onboardingCompleted = onboardingCompleted,
+            photoBase64 = photoBase64
         )
     }
 

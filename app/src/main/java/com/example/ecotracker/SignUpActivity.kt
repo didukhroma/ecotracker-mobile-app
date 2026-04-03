@@ -88,7 +88,7 @@ class SignUpActivity : AppCompatActivity() {
             Patterns.EMAIL_ADDRESS.matcher(emailInput.text?.toString()?.trim().orEmpty()).matches() &&
             passwordInput.text?.toString().orEmpty().length >= 8
         signUpButton.isEnabled = enabled
-        signUpButton.alpha = if (enabled) 1f else 0.45f
+        signUpButton.alpha = if (enabled) 1f else 0.4f
     }
 
     private fun ImageView.loadAsset(assetName: String) {

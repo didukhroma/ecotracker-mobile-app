@@ -74,7 +74,7 @@ class SignInActivity : AppCompatActivity() {
         val enabled = Patterns.EMAIL_ADDRESS.matcher(emailInput.text?.toString()?.trim().orEmpty()).matches() &&
             passwordInput.text?.toString().orEmpty().length >= 8
         signInButton.isEnabled = enabled
-        signInButton.alpha = if (enabled) 1f else 0.45f
+        signInButton.alpha = if (enabled) 1f else 0.4f
     }
 
     private fun ImageView.loadAsset(assetName: String) {

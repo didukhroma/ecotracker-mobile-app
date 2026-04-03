@@ -21,6 +21,7 @@ object HomeCacheStore {
             .put("emissionReduced", data.emissionReduced)
             .put("quote", data.quote)
             .put("onboardingCompleted", data.onboardingCompleted)
+            .put("photoBase64", data.photoBase64)
             .toString()
 
         prefs(context)
@@ -67,6 +68,7 @@ object HomeCacheStore {
                 emissionReduced = json.optString("emissionReduced"),
                 quote = json.optString("quote"),
                 onboardingCompleted = json.optBoolean("onboardingCompleted", false),
+                photoBase64 = json.optString("photoBase64").ifBlank { null },
                 cachedAtMs = cachedAtMs
             )
         } catch (_: Exception) {

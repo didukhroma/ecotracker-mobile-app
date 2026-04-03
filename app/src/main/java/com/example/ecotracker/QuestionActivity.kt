@@ -93,6 +93,7 @@ class QuestionActivity : AppCompatActivity() {
         setupCounters()
         setupListeners()
         renderStep()
+        prefillFromFirestoreIfAvailable()
     }
 
     private fun bindViews() {
@@ -149,7 +150,7 @@ class QuestionActivity : AppCompatActivity() {
         setupDropdown(countryDropdown, R.array.countries) { selectedCountry = it }
         setupDropdown(drivesCarDropdown, R.array.yes_no_options) {
             selectedDrivesCar = it
-            val drives = it == getString(R.string.yes)
+            val drives = isDrivesCarYes()
             if (!drives) {
                 selectedDrivingFrequency = null
                 selectedCarType = null
@@ -158,6 +159,7 @@ class QuestionActivity : AppCompatActivity() {
                 drivingFrequencyLayout.error = null
                 carTypeLayout.error = null
             }
+            updateDrivingDependentVisibility()
         }
         setupDropdown(drivingFrequencyDropdown, R.array.driving_frequency_options) { selectedDrivingFrequency = it }
         setupDropdown(carTypeDropdown, R.array.car_type_options) { selectedCarType = it }
@@ -198,6 +200,14 @@ class QuestionActivity : AppCompatActivity() {
     private fun updateCounterViews() {
         bedroomsValueText.text = bedrooms.toString()
         peopleValueText.text = peopleExcludingSelf.toString()
+
+        val bedroomsCanDecrease = bedrooms > 0
+        bedroomsMinusButton.isEnabled = bedroomsCanDecrease
+        bedroomsMinusButton.alpha = if (bedroomsCanDecrease) 1f else 0.35f
+
+        val peopleCanDecrease = peopleExcludingSelf > 0
+        peopleMinusButton.isEnabled = peopleCanDecrease
+        peopleMinusButton.alpha = if (peopleCanDecrease) 1f else 0.35f
     }
 
     private fun setupListeners() {
@@ -239,20 +249,17 @@ class QuestionActivity : AppCompatActivity() {
         drivesCarDropdown.doAfterTextChanged {
             if (currentStep == 2) {
                 drivesCarLayout.error = null
-                if (drivesCarDropdown.text.toString() != selectedDrivesCar) selectedDrivesCar = null
                 updateDrivingDependentVisibility()
             }
         }
         drivingFrequencyDropdown.doAfterTextChanged {
             if (currentStep == 2) {
                 drivingFrequencyLayout.error = null
-                if (drivingFrequencyDropdown.text.toString() != selectedDrivingFrequency) selectedDrivingFrequency = null
             }
         }
         carTypeDropdown.doAfterTextChanged {
             if (currentStep == 2) {
                 carTypeLayout.error = null
-                if (carTypeDropdown.text.toString() != selectedCarType) selectedCarType = null
             }
         }
 
@@ -307,9 +314,21 @@ class QuestionActivity : AppCompatActivity() {
     }
 
     private fun updateDrivingDependentVisibility() {
-        val drives = selectedDrivesCar == getString(R.string.yes)
-        drivingFrequencyLayout.isVisible = drives
-        carTypeLayout.isVisible = drives
+        val drives = isDrivesCarYes()
+        drivingFrequencyLayout.isVisible = true
+        carTypeLayout.isVisible = true
+        drivingFrequencyDropdown.isEnabled = drives
+        carTypeDropdown.isEnabled = drives
+        drivingFrequencyLayout.isEnabled = drives
+        carTypeLayout.isEnabled = drives
+        val disabledAlpha = if (drives) 1f else 0.45f
+        drivingFrequencyLayout.alpha = disabledAlpha
+        carTypeLayout.alpha = disabledAlpha
+    }
+
+    private fun isDrivesCarYes(): Boolean {
+        val yes = getString(R.string.yes)
+        return selectedDrivesCar?.trim()?.equals(yes, ignoreCase = true) == true
     }
 
     private fun validateCurrentStep(showErrors: Boolean): Boolean {
@@ -481,6 +500,90 @@ class QuestionActivity : AppCompatActivity() {
             if (payload != null) putExtra(EXTRA_ONBOARDING_PAYLOAD, payload)
         })
         finishAffinity()
+    }
+
+    private fun prefillFromFirestoreIfAvailable() {
+        FirebaseSync.fetchOnboardingAnswers(this) { remote ->
+            if (remote == null) return@fetchOnboardingAnswers
+            runOnUiThread {
+                applyPrefill(remote)
+            }
+        }
+    }
+
+    private fun applyPrefill(remote: OnboardingAnswers) {
+        answers.firstName = remote.firstName
+        answers.lastName = remote.lastName
+        answers.country = remote.country
+        answers.drivesCar = remote.drivesCar
+        answers.drivingFrequency = remote.drivingFrequency
+        answers.carType = remote.carType
+        answers.diet = remote.diet
+        answers.buildingType = remote.buildingType
+        answers.bedrooms = remote.bedrooms
+        answers.peopleExcludingSelf = remote.peopleExcludingSelf
+        answers.goals = remote.goals
+
+        selectedCountry = remote.country.ifBlank { null }
+        selectedDrivesCar = remote.drivesCar.ifBlank { null }
+        selectedDrivingFrequency = remote.drivingFrequency
+        selectedCarType = remote.carType
+        selectedBuildingType = remote.buildingType.ifBlank { null }
+
+        firstNameInput.setText(remote.firstName)
+        lastNameInput.setText(remote.lastName)
+        if (!remote.country.isBlank()) countryDropdown.setText(remote.country, false)
+        if (!remote.drivesCar.isBlank()) drivesCarDropdown.setText(remote.drivesCar, false)
+        if (!remote.drivingFrequency.isNullOrBlank()) drivingFrequencyDropdown.setText(remote.drivingFrequency, false)
+        if (!remote.carType.isNullOrBlank()) carTypeDropdown.setText(remote.carType, false)
+        if (!remote.buildingType.isBlank()) buildingTypeDropdown.setText(remote.buildingType, false)
+
+        bedrooms = remote.bedrooms.coerceAtLeast(0)
+        peopleExcludingSelf = remote.peopleExcludingSelf.coerceAtLeast(0)
+        updateCounterViews()
+
+        dietOptionAll.isChecked = remote.diet.contains(getString(R.string.diet_all))
+        dietOptionNoRedMeat.isChecked = remote.diet.contains(getString(R.string.diet_no_red_meat))
+        dietOptionPescatarian.isChecked = remote.diet.contains(getString(R.string.diet_pescatarian))
+        dietOptionVeggie.isChecked = remote.diet.contains(getString(R.string.diet_veggie))
+
+        goalCutCarbon.isChecked = remote.goals.contains(getString(R.string.goal_cut_carbon))
+        goalSaveMoney.isChecked = remote.goals.contains(getString(R.string.goal_save_money))
+        goalTakeBigSteps.isChecked = remote.goals.contains(getString(R.string.goal_take_big_steps))
+        goalProtectNature.isChecked = remote.goals.contains(getString(R.string.goal_protect_nature))
+        goalSaveWater.isChecked = remote.goals.contains(getString(R.string.goal_save_water))
+
+        currentStep = resolveFirstUnfinishedStep(remote)
+        renderStep()
+        updateDrivingDependentVisibility()
+    }
+
+    private fun resolveFirstUnfinishedStep(data: OnboardingAnswers): Int {
+        val nameRegex = Regex("^[\\p{L}][\\p{L} '\\-]*$")
+        val step1Done = data.firstName.isNotBlank() &&
+            data.lastName.isNotBlank() &&
+            data.country.isNotBlank() &&
+            nameRegex.matches(data.firstName) &&
+            nameRegex.matches(data.lastName)
+        if (!step1Done) return 1
+
+        val hasDriveChoice = data.drivesCar == getString(R.string.yes) || data.drivesCar == getString(R.string.no)
+        val step2Done = if (!hasDriveChoice) {
+            false
+        } else if (data.drivesCar == getString(R.string.no)) {
+            true
+        } else {
+            !data.drivingFrequency.isNullOrBlank() && !data.carType.isNullOrBlank()
+        }
+        if (!step2Done) return 2
+
+        val step3Done = data.diet.isNotEmpty()
+        if (!step3Done) return 3
+
+        val step4Done = data.buildingType.isNotBlank()
+        if (!step4Done) return 4
+
+        return 5
     }
 }
 

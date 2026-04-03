@@ -50,7 +50,7 @@ class ForgotPasswordActivity : AppCompatActivity() {
     private fun updateSendButtonState() {
         val enabled = Patterns.EMAIL_ADDRESS.matcher(emailInput.text?.toString()?.trim().orEmpty()).matches()
         sendEmailButton.isEnabled = enabled
-        sendEmailButton.alpha = if (enabled) 1f else 0.45f
+        sendEmailButton.alpha = if (enabled) 1f else 0.4f
     }
 
     private fun sendResetViaFirebaseOrFallback() {

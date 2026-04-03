@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 
 object FirebaseSync {
 
@@ -186,17 +187,27 @@ object FirebaseSync {
 
         accountRef.get().addOnSuccessListener { accountSnap ->
             onboardingRef.get().addOnSuccessListener { onboardingSnap ->
-                val firstNameFromAccount = accountSnap.getString("name")
-                    ?.trim()
-                    ?.split(" ")
-                    ?.firstOrNull()
+                val accountNameParts = splitFullName(accountSnap.getString("name").orEmpty())
+                val firstName = accountSnap.getString("firstName")
                     ?.takeIf { it.isNotBlank() }
-                val firstName = firstNameFromAccount ?: onboardingSnap.getString("firstName").orEmpty()
+                    ?: onboardingSnap.getString("firstName")
+                        ?.takeIf { it.isNotBlank() }
+                    ?: accountNameParts.first
+                val lastName = accountSnap.getString("lastName")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: onboardingSnap.getString("lastName")
+                        ?.takeIf { it.isNotBlank() }
+                    ?: accountNameParts.second
+                val fullName = listOf(firstName, lastName)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" ")
                 val onboardingCompleted = onboardingSnap.getBoolean("onboardingCompleted") ?: false
+                val photoBase64 = accountSnap.getString("photoBase64")
 
                 val data = HomeRepository.defaultHomeData(
-                    firstName = firstName,
-                    onboardingCompleted = onboardingCompleted
+                    firstName = fullName,
+                    onboardingCompleted = onboardingCompleted,
+                    photoBase64 = photoBase64
                 )
                 HomeCacheStore.write(context, uid, data)
                 onResult(data)
@@ -206,6 +217,142 @@ object FirebaseSync {
         }.addOnFailureListener {
             onResult(HomeRepository.defaultHomeData())
         }
+    }
+
+    fun fetchOnboardingAnswers(
+        context: Context,
+        onResult: (OnboardingAnswers?) -> Unit
+    ) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid.isNullOrBlank() || !isAvailable(context)) {
+            onResult(null)
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("onboarding")
+            .get()
+            .addOnSuccessListener { snap ->
+                if (!snap.exists()) {
+                    onResult(null)
+                    return@addOnSuccessListener
+                }
+
+                val parsed = OnboardingAnswers(
+                    firstName = snap.getString("firstName").orEmpty(),
+                    lastName = snap.getString("lastName").orEmpty(),
+                    country = snap.getString("country").orEmpty(),
+                    drivesCar = snap.getString("drivesCar").orEmpty(),
+                    drivingFrequency = snap.getString("drivingFrequency").orEmpty().ifBlank { null },
+                    carType = snap.getString("carType").orEmpty().ifBlank { null },
+                    diet = (snap.get("diet") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+                    buildingType = snap.getString("buildingType").orEmpty(),
+                    bedrooms = (snap.getLong("bedrooms") ?: 1L).toInt(),
+                    peopleExcludingSelf = (snap.getLong("peopleExcludingSelf") ?: 0L).toInt(),
+                    goals = (snap.get("goals") as? List<*>)?.filterIsInstance<String>().orEmpty()
+                )
+                onResult(parsed)
+            }
+            .addOnFailureListener { onResult(null) }
+    }
+
+    fun fetchEditableProfile(context: Context, onResult: (EditableProfile?) -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid.isNullOrBlank() || !isAvailable(context)) {
+            onResult(null)
+            return
+        }
+
+        val db = FirebaseFirestore.getInstance()
+        val accountRef = db.collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("account")
+        val onboardingRef = db.collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("onboarding")
+
+        accountRef.get()
+            .addOnSuccessListener { accountSnap ->
+                onboardingRef.get().addOnSuccessListener { onboardingSnap ->
+                    val fullName = accountSnap.getString("name").orEmpty()
+                    val fullNameParts = splitFullName(fullName)
+
+                    val firstName = accountSnap.getString("firstName")
+                        ?.takeIf { it.isNotBlank() }
+                        ?: onboardingSnap.getString("firstName")
+                            ?.takeIf { it.isNotBlank() }
+                        ?: fullNameParts.first
+
+                    val lastName = accountSnap.getString("lastName")
+                        ?.takeIf { it.isNotBlank() }
+                        ?: onboardingSnap.getString("lastName")
+                            ?.takeIf { it.isNotBlank() }
+                        ?: fullNameParts.second
+
+                    val profile = EditableProfile(
+                        firstName = firstName.orEmpty(),
+                        lastName = lastName.orEmpty(),
+                        photoBase64 = accountSnap.getString("photoBase64")
+                    )
+                    onResult(profile)
+                }.addOnFailureListener {
+                    val fullNameParts = splitFullName(accountSnap.getString("name").orEmpty())
+                    val profile = EditableProfile(
+                        firstName = accountSnap.getString("firstName")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: fullNameParts.first,
+                        lastName = accountSnap.getString("lastName")
+                            ?.takeIf { it.isNotBlank() }
+                            ?: fullNameParts.second,
+                        photoBase64 = accountSnap.getString("photoBase64")
+                    )
+                    onResult(profile)
+                }
+            }
+            .addOnFailureListener { onResult(null) }
+    }
+
+    fun updateEditableProfile(
+        context: Context,
+        firstName: String,
+        lastName: String,
+        photoBase64: String?,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid.isNullOrBlank() || !isAvailable(context)) {
+            onError(context.getString(R.string.firebase_not_configured))
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("account")
+            .set(
+                mapOf(
+                    "name" to listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" "),
+                    "firstName" to firstName,
+                    "lastName" to lastName,
+                    "photoBase64" to photoBase64,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
+            )
+            .addOnSuccessListener {
+                HomeCacheStore.invalidate(context)
+                onSuccess()
+            }
+            .addOnFailureListener { ex ->
+                onError(ex.localizedMessage ?: context.getString(R.string.firebase_error_generic))
+            }
     }
 
     private fun hydrateLearningProgress(context: Context, onDone: () -> Unit) {
@@ -272,6 +419,15 @@ object FirebaseSync {
             "payload" to payloadJson,
             "updatedAt" to FieldValue.serverTimestamp()
         )
+    }
+
+    private fun splitFullName(name: String): Pair<String, String> {
+        val parts = name.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (parts.isEmpty()) return "" to ""
+        if (parts.size == 1) return parts.first() to ""
+        val firstName = parts.first()
+        val lastName = parts.drop(1).joinToString(" ")
+        return firstName to lastName
     }
 
     private fun mapAuthError(context: Context, throwable: Throwable): String {

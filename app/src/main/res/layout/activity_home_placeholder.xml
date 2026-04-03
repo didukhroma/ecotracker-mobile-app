@@ -22,12 +22,11 @@
 
             <ImageButton
                 android:id="@+id/menuButton"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="30dp"
+                android:layout_height="20dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/open_menu"
-                android:src="@android:drawable/ic_menu_sort_by_size"
-                app:tint="@color/lime_10" />
+                android:src="@drawable/ic_home_menu_burger" />
 
             <TextView
                 android:id="@+id/greetingText"
@@ -120,6 +119,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:drawableStart="@drawable/ic_home_footprint"
+                            android:drawablePadding="8dp"
+                            android:gravity="center_vertical"
                             android:text="@string/home_your_footprint"
                             android:textColor="@android:color/white" />
 
@@ -140,6 +142,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:drawableStart="@drawable/ic_home_challenges"
+                            android:drawablePadding="8dp"
+                            android:gravity="center_vertical"
                             android:text="@string/home_challenges_participated"
                             android:textColor="@android:color/white" />
 
@@ -160,6 +165,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:drawableStart="@drawable/ic_home_tree"
+                            android:drawablePadding="8dp"
+                            android:gravity="center_vertical"
                             android:text="@string/home_trees_saved"
                             android:textColor="@android:color/white" />
 
@@ -180,6 +188,9 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:drawableStart="@drawable/ic_home_carbon"
+                            android:drawablePadding="8dp"
+                            android:gravity="center_vertical"
                             android:text="@string/home_emission_reduced"
                             android:textColor="@android:color/white" />
 
@@ -192,13 +203,20 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <ImageView
-                android:id="@+id/homeImage"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="260dp"
                 android:layout_marginTop="16dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp">
+
+                <ImageView
+                android:id="@+id/homeImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:contentDescription="@string/home_image"
                 android:scaleType="centerCrop" />
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
     </ScrollView>
@@ -215,19 +233,44 @@
         android:paddingEnd="16dp"
         android:paddingBottom="20dp">
 
-        <TextView
+        <ImageView
             android:id="@+id/closeSidebar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="&#8592;"
-            android:textColor="@android:color/white"
-            android:textSize="22sp" />
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_arrow_left_white" />
+
+        <FrameLayout
+            android:id="@+id/sidebarAvatarContainer"
+            android:layout_width="108dp"
+            android:layout_height="108dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_avatar_circle">
+
+            <ImageView
+                android:id="@+id/sidebarAvatarImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/sidebarAvatarInitial"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="J"
+                android:textColor="@android:color/white"
+                android:textSize="42sp"
+                android:textStyle="bold" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/sidebarName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_marginTop="18dp"
             android:gravity="center"
             android:textColor="@android:color/white"
             android:textSize="26sp" />
@@ -256,9 +299,12 @@
             android:background="#7AB649" />
 
         <TextView
+            android:id="@+id/sidebarCarbonTracker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_home_carbon"
+            android:drawablePadding="12dp"
             android:text="@string/sidebar_carbon_tracker"
             android:textColor="@android:color/white" />
 
@@ -267,6 +313,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_sidebar_progress"
+            android:drawablePadding="12dp"
             android:text="@string/sidebar_my_progress"
             android:textColor="@android:color/white" />
 
@@ -275,6 +323,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_sidebar_learning"
+            android:drawablePadding="12dp"
             android:text="@string/sidebar_learning_platform"
             android:textColor="@android:color/white" />
 
@@ -283,6 +333,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_sidebar_personal_tips"
+            android:drawablePadding="12dp"
             android:text="@string/sidebar_personal_tips"
             android:textColor="@android:color/white" />
 
@@ -291,19 +343,44 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_sidebar_community"
+            android:drawablePadding="12dp"
             android:text="@string/sidebar_community"
             android:textColor="@android:color/white" />
 
         <TextView
-            android:id="@+id/logoutText"
+            android:id="@+id/sidebarSettings"
             android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:drawableStart="@drawable/ic_sidebar_settings"
+            android:drawablePadding="12dp"
+            android:text="@string/sidebar_settings"
+            android:textColor="@android:color/white" />
+
+        <LinearLayout
+            android:id="@+id/logoutText"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="0dp"
             android:layout_weight="1"
-            android:gravity="bottom"
-            android:text="@string/sidebar_logout"
-            android:textColor="@android:color/white"
-            android:textStyle="bold" />
+            android:layout_gravity="center_horizontal"
+            android:gravity="bottom|center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="19dp"
+                android:layout_marginEnd="10dp"
+                android:src="@drawable/ic_sidebar_logout" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sidebar_logout"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

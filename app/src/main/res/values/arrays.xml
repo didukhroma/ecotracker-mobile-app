@@ -206,16 +206,19 @@
 
     <string-array name="driving_frequency_options">
         <item>Every day</item>
-        <item>3-5 times per week</item>
-        <item>1-2 times per week</item>
-        <item>Rarely</item>
+        <item>5-6 times a week</item>
+        <item>3-4 times a week</item>
+        <item>1-2 times a week</item>
+        <item>A few times a month</item>
     </string-array>
 
     <string-array name="car_type_options">
-        <item>Petrol</item>
-        <item>Diesel</item>
-        <item>Hybrid</item>
-        <item>Electric</item>
+        <item>Petrol car</item>
+        <item>Diesel car</item>
+        <item>Hybrid car</item>
+        <item>Plug-in hybrid</item>
+        <item>Electric car</item>
+        <item>LPG / Gas car</item>
     </string-array>
 
     <string-array name="building_type_options">

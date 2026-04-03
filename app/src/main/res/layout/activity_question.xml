@@ -25,7 +25,10 @@
                 android:id="@+id/prevLink"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/prev_with_arrow"
+                android:drawableStart="@drawable/ic_arrow_left"
+                android:drawablePadding="4dp"
+                android:gravity="center_vertical"
+                android:text="@string/back"
                 android:textColor="@color/lime_10"
                 android:textStyle="bold" />
 
@@ -43,7 +46,10 @@
                 android:id="@+id/skipLink"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/skip_with_arrow"
+                android:drawableEnd="@drawable/ic_arrow_right"
+                android:drawablePadding="4dp"
+                android:gravity="center_vertical"
+                android:text="@string/skip"
                 android:textColor="@color/lime_10"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -544,7 +550,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:background="@color/lime_1"
+                android:background="@drawable/bg_counter_row"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingStart="8dp"
@@ -554,9 +560,12 @@
                     android:id="@+id/bedroomsMinusButton"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:text="-"
-                    android:textColor="@color/lime_10"
+                    app:backgroundTint="@android:color/transparent"
                     app:cornerRadius="18dp"
+                    app:icon="@drawable/ic_minus"
+                    app:iconTint="@color/lime_10"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
                     app:strokeColor="@color/lime_8"
                     app:strokeWidth="1dp" />
 
@@ -574,9 +583,12 @@
                     android:id="@+id/bedroomsPlusButton"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:text="+"
-                    android:textColor="@color/lime_10"
+                    app:backgroundTint="@android:color/transparent"
                     app:cornerRadius="18dp"
+                    app:icon="@drawable/ic_plus"
+                    app:iconTint="@color/lime_10"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
                     app:strokeColor="@color/lime_8"
                     app:strokeWidth="1dp" />
             </LinearLayout>
@@ -602,7 +614,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="8dp"
-                android:background="@color/lime_1"
+                android:background="@drawable/bg_counter_row"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingStart="8dp"
@@ -612,9 +624,12 @@
                     android:id="@+id/peopleMinusButton"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:text="-"
-                    android:textColor="@color/lime_10"
+                    app:backgroundTint="@android:color/transparent"
                     app:cornerRadius="18dp"
+                    app:icon="@drawable/ic_minus"
+                    app:iconTint="@color/lime_10"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
                     app:strokeColor="@color/lime_8"
                     app:strokeWidth="1dp" />
 
@@ -632,9 +647,12 @@
                     android:id="@+id/peoplePlusButton"
                     android:layout_width="36dp"
                     android:layout_height="36dp"
-                    android:text="+"
-                    android:textColor="@color/lime_10"
+                    app:backgroundTint="@android:color/transparent"
                     app:cornerRadius="18dp"
+                    app:icon="@drawable/ic_plus"
+                    app:iconTint="@color/lime_10"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
                     app:strokeColor="@color/lime_8"
                     app:strokeWidth="1dp" />
             </LinearLayout>
@@ -661,6 +679,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
+                android:background="@drawable/bg_onboarding_field"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:text="@string/goal_cut_carbon"
                 android:textColor="@color/lime_10" />
 
@@ -668,6 +691,12 @@
                 android:id="@+id/goalSaveMoney"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_onboarding_field"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:text="@string/goal_save_money"
                 android:textColor="@color/lime_10" />
 
@@ -675,6 +704,12 @@
                 android:id="@+id/goalTakeBigSteps"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_onboarding_field"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:text="@string/goal_take_big_steps"
                 android:textColor="@color/lime_10" />
 
@@ -682,6 +717,12 @@
                 android:id="@+id/goalProtectNature"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_onboarding_field"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:text="@string/goal_protect_nature"
                 android:textColor="@color/lime_10" />
 
@@ -689,6 +730,12 @@
                 android:id="@+id/goalSaveWater"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_onboarding_field"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:text="@string/goal_save_water"
                 android:textColor="@color/lime_10" />
 

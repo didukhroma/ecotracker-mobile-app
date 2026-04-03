@@ -13,7 +13,7 @@
     <string name="sign_in_title">Sign In</string>
     <string name="forgot_password_title">Forgot password</string>
     <string name="placeholder_message">Placeholder screen. Send the next design and I will build it here.</string>
-    <string name="back">Back</string>
+    <string name="back">Prev</string>
     <string name="back_with_arrow">&lt; Back</string>
     <string name="name">Name</string>
     <string name="email">Email</string>
@@ -26,6 +26,7 @@
     <string name="question_title">Question</string>
     <string name="question_body">Answer a few questions to discover your carbon footprint. Then we will help you find ways to help the planet.</string>
     <string name="skip_with_arrow">Skip &#8594;</string>
+    <string name="skip">Skip</string>
     <string name="step_1">step 1</string>
     <string name="step_progress">1 / 5</string>
     <string name="step_counter_format">%1$d / %2$d</string>
@@ -86,6 +87,7 @@
     <string name="sidebar_learning_platform">Learning platform</string>
     <string name="sidebar_personal_tips">Personal tips</string>
     <string name="sidebar_community">Community</string>
+    <string name="sidebar_settings">Settings</string>
     <string name="your_achievements">Your achievements</string>
     <string name="rewards_progress_format">You have opened %1$d of %2$d rewards</string>
     <string name="requirements_title">Requirements:</string>
@@ -95,6 +97,7 @@
     <string name="claim">Claim</string>
     <string name="my_achievements">My achievements</string>
     <string name="community_profile_title">Community profile</string>
+    <string name="carbon_emission_tracker_title">Carbon emission tracker</string>
     <string name="in_development">In development</string>
     <string name="sidebar_logout">Logout</string>
     <string name="back_arrow_only">&#8592;</string>
@@ -156,4 +159,12 @@
     <string name="firebase_error_wrong_password">Wrong password.</string>
     <string name="firebase_error_user_not_found">User not found.</string>
     <string name="firebase_error_weak_password">Password is too weak.</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_change_photo">Change photo</string>
+    <string name="settings_take_photo">Take photo</string>
+    <string name="settings_pick_gallery">Pick from gallery</string>
+    <string name="settings_name_hint">Your name</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saved">Profile saved</string>
+    <string name="settings_back">Back</string>
 </resources>

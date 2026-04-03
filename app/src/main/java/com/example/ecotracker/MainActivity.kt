@@ -18,9 +18,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var helperText: TextView
     private lateinit var secondaryButton: Button
     private var currentScreen = OnboardingScreen.SCREEN_2
+    private val forceHomeMock: Boolean by lazy {
+        intent?.getBooleanExtra("force_home_mock", true) ?: true
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (forceHomeMock) {
+            startActivity(Intent(this, HomeActivity::class.java))
+            finish()
+            return
+        }
         setContentView(R.layout.activity_main)
 
         heroImage = findViewById(R.id.loadingHeroImage)
@@ -45,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (FirebaseSync.hasAuthenticatedUser(this)) {
+        if (!forceHomeMock && FirebaseSync.hasAuthenticatedUser(this)) {
             startActivity(Intent(this, HomeActivity::class.java))
             finish()
         }
