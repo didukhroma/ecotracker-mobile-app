@@ -38,7 +38,7 @@ class AchievementDetailActivity : AppCompatActivity() {
             val check = CheckBox(this).apply {
                 isChecked = checked
                 isEnabled = false
-                this.text = "• $text"
+                this.text = "- $text"
                 setTextColor(getColor(R.color.lime_10))
                 textSize = 13f
             }
@@ -47,8 +47,16 @@ class AchievementDetailActivity : AppCompatActivity() {
     }
 
     private fun ImageView.loadAsset(assetName: String) {
-        assets.open(assetName).use { input ->
-            setImageBitmap(BitmapFactory.decodeStream(input))
+        val bitmap = try {
+            assets.open(assetName).use { input -> BitmapFactory.decodeStream(input) }
+        } catch (_: Exception) {
+            val pngFallback = if (assetName.endsWith(".jpg")) assetName.replace(".jpg", ".png") else assetName
+            try {
+                assets.open(pngFallback).use { input -> BitmapFactory.decodeStream(input) }
+            } catch (_: Exception) {
+                assets.open("screen_2.png").use { input -> BitmapFactory.decodeStream(input) }
+            }
         }
+        setImageBitmap(bitmap)
     }
 }

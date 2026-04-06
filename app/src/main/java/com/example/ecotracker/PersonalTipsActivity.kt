@@ -1,6 +1,7 @@
 package com.example.ecotracker
 
 import android.os.Bundle
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.widget.CheckBox
 import android.widget.ImageView
@@ -22,19 +23,28 @@ class PersonalTipsActivity : AppCompatActivity() {
 
         tips.forEach { tip ->
             val row = inflater.inflate(R.layout.item_personal_tip, tipsContainer, false)
-            row.findViewById<ImageView>(R.id.tipImage).setImageResource(tip.imageRes)
+            bindTipImage(row.findViewById(R.id.tipImage), tip.imageAssetPath)
             row.findViewById<TextView>(R.id.tipTitle).text = tip.title
             row.findViewById<TextView>(R.id.tipDescription).text = tip.description
             row.findViewById<CheckBox>(R.id.tipCheckbox).isChecked = tip.selected
             tipsContainer.addView(row)
         }
     }
+
+    private fun bindTipImage(imageView: ImageView, assetPath: String) {
+        val bitmap = try {
+            assets.open(assetPath).use { input -> BitmapFactory.decodeStream(input) }
+        } catch (_: Exception) {
+            null
+        }
+        imageView.setImageBitmap(bitmap)
+    }
 }
 
 data class PersonalTipItem(
     val title: String,
     val description: String,
-    val imageRes: Int,
+    val imageAssetPath: String,
     val selected: Boolean
 )
 
@@ -45,31 +55,31 @@ object PersonalTipsRepository {
             PersonalTipItem(
                 title = "Transport",
                 description = "Go to joint trips (Carpooling) or use public transport.",
-                imageRes = android.R.drawable.ic_menu_directions,
+                imageAssetPath = "personal_tips/carpool.png",
                 selected = true
             ),
             PersonalTipItem(
                 title = "Energy consumption",
                 description = "Install energy efficient lamps (such as LED lamps) instead of ordinary ones.",
-                imageRes = android.R.drawable.ic_menu_manage,
+                imageAssetPath = "personal_tips/energy.jpg",
                 selected = false
             ),
             PersonalTipItem(
                 title = "Food",
                 description = "Reduce meat consumption, especially red, and add more plant foods to your diet.",
-                imageRes = android.R.drawable.ic_menu_crop,
+                imageAssetPath = "personal_tips/food.jpg",
                 selected = false
             ),
             PersonalTipItem(
                 title = "Shopping",
                 description = "Avoid single-use plastic products.",
-                imageRes = android.R.drawable.ic_menu_delete,
+                imageAssetPath = "personal_tips/shopping.jpg",
                 selected = false
             ),
             PersonalTipItem(
                 title = "Water",
                 description = "Install aerators on faucets and reduce water usage.",
-                imageRes = android.R.drawable.ic_menu_gallery,
+                imageAssetPath = "personal_tips/water.jpg",
                 selected = false
             )
         )

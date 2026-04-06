@@ -87,6 +87,7 @@
     <string name="sidebar_learning_platform">Learning platform</string>
     <string name="sidebar_personal_tips">Personal tips</string>
     <string name="sidebar_community">Community</string>
+    <string name="sidebar_achievements">Achievements</string>
     <string name="sidebar_settings">Settings</string>
     <string name="your_achievements">Your achievements</string>
     <string name="rewards_progress_format">You have opened %1$d of %2$d rewards</string>
@@ -132,6 +133,8 @@
     <string name="mark_completed">Mark as completed</string>
     <string name="completed">Completed</string>
     <string name="lesson_completed_saved">Lesson progress saved</string>
+    <string name="learning_teacher_name">Dr. Emily Carter</string>
+    <string name="learning_teacher_role">Sustainability Expert</string>
     <string name="tips_label">tip</string>
     <string name="lessons_label">lessons</string>
     <string name="tips_unit">tips</string>

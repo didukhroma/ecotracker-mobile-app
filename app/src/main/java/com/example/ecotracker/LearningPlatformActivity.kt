@@ -58,8 +58,11 @@ class LearningPlatformActivity : AppCompatActivity() {
     }
 
     private fun ImageView.loadAsset(assetName: String) {
-        assets.open(assetName).use { input ->
-            setImageBitmap(BitmapFactory.decodeStream(input))
+        val bitmap = try {
+            assets.open(assetName).use { input -> BitmapFactory.decodeStream(input) }
+        } catch (_: Exception) {
+            assets.open("home.png").use { input -> BitmapFactory.decodeStream(input) }
         }
+        setImageBitmap(bitmap)
     }
 }

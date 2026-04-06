@@ -51,17 +51,24 @@ class MyProgressActivity : AppCompatActivity() {
     }
 
     private fun bindBreakdown() {
-        val filterItems = listOf(getString(R.string.breakdown_filter_all))
+        val filterItems = data.breakdownFilters.map { it.label }
         filterDropdown.setAdapter(ArrayAdapter(this, android.R.layout.simple_list_item_1, filterItems))
         filterDropdown.setText(filterItems.first(), false)
         filterDropdown.keyListener = null
         filterDropdown.setOnClickListener { filterDropdown.showDropDown() }
+        filterDropdown.setOnItemClickListener { _, _, position, _ ->
+            val rows = data.breakdownFilters.getOrNull(position)?.rows.orEmpty()
+            renderBreakdownRows(rows)
+        }
+        renderBreakdownRows(data.breakdownFilters.firstOrNull()?.rows.orEmpty())
+    }
 
+    private fun renderBreakdownRows(rows: List<MetricRow>) {
         renderMetricRows(
             container = breakdownListContainer,
-            rows = data.breakdown,
+            rows = rows,
             unitLabel = getString(R.string.kg_unit),
-            maxValue = data.breakdown.maxOfOrNull { it.value } ?: 1.0
+            maxValue = max(1.0, rows.maxOfOrNull { it.value } ?: 1.0)
         )
     }
 
@@ -160,7 +167,7 @@ class MyProgressActivity : AppCompatActivity() {
 
             val value = TextView(this).apply {
                 text = if (unitLabel == getString(R.string.kg_unit)) {
-                    String.format("%.3f %s", row.value, unitLabel)
+                    String.format("%.0f %s", row.value, unitLabel)
                 } else {
                     String.format("%.0f %s", row.value, unitLabel)
                 }
@@ -185,11 +192,16 @@ data class ProgressData(
     val relativeEmissionsParts: RelativeEmissionParts,
     val comparisonVsCitizen: String,
     val comparisonVsGlobal: String,
-    val breakdown: List<MetricRow>,
+    val breakdownFilters: List<BreakdownFilter>,
     val personalTipsCount: Int,
     val personalTips: List<MetricRow>,
     val learningCount: Int,
     val learning: List<MetricRow>
+)
+
+data class BreakdownFilter(
+    val label: String,
+    val rows: List<MetricRow>
 )
 
 data class RelativeEmissions(
@@ -221,17 +233,80 @@ object MyProgressRepository {
             ),
             comparisonVsCitizen = "19 % less",
             comparisonVsGlobal = "309 % more",
-            breakdown = listOf(
-                MetricRow("Transport", 5.124),
-                MetricRow("Food", 3.524),
-                MetricRow("Home", 3.024),
-                MetricRow("Purchases", 2.324),
-                MetricRow("Services", 1.824),
-                MetricRow("Tree", 0.0)
+            breakdownFilters = listOf(
+                BreakdownFilter(
+                    label = "Showing all sections",
+                    rows = listOf(
+                        MetricRow("Transport", 0.0),
+                        MetricRow("Food", 0.0),
+                        MetricRow("Home", 0.0),
+                        MetricRow("Purchases", 0.0),
+                        MetricRow("Services", 0.0),
+                        MetricRow("Tree", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing transport",
+                    rows = listOf(
+                        MetricRow("Car", 0.0),
+                        MetricRow("Bus", 0.0),
+                        MetricRow("Rail", 0.0),
+                        MetricRow("Ferry", 0.0),
+                        MetricRow("Tube and Light rail", 0.0),
+                        MetricRow("Taxi", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing food",
+                    rows = listOf(
+                        MetricRow("Diet", 0.0),
+                        MetricRow("Food waste", 0.0),
+                        MetricRow("Pet food", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing home",
+                    rows = listOf(
+                        MetricRow("Gas", 0.0),
+                        MetricRow("Electricity", 0.0),
+                        MetricRow("Waste", 0.0),
+                        MetricRow("Home improvement", 0.0),
+                        MetricRow("Water", 0.0),
+                        MetricRow("Oil", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing purchases",
+                    rows = listOf(
+                        MetricRow("Clothing", 0.0),
+                        MetricRow("Electricals", 0.0),
+                        MetricRow("Personal care", 0.0),
+                        MetricRow("Appliances", 0.0),
+                        MetricRow("Furniture", 0.0),
+                        MetricRow("Cleaning", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing services",
+                    rows = listOf(
+                        MetricRow("Financial services", 0.0),
+                        MetricRow("Accommodation services", 0.0),
+                        MetricRow("Mobile and internet", 0.0),
+                        MetricRow("Pharmacy", 0.0),
+                        MetricRow("Recreation services", 0.0)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing trees",
+                    rows = listOf(
+                        MetricRow("Forest protection", 0.0),
+                        MetricRow("Tree planting", 0.0)
+                    )
+                )
             ),
-            personalTipsCount = 1,
+            personalTipsCount = 0,
             personalTips = listOf(
-                MetricRow("Planet saver", 1.0),
+                MetricRow("Planet saver", 0.0),
                 MetricRow("Big impact", 0.0),
                 MetricRow("Decent impact", 0.0),
                 MetricRow("Good impact", 0.0),

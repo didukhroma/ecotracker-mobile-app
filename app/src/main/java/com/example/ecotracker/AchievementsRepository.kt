@@ -18,22 +18,43 @@ data class AchievementState(
 )
 
 object AchievementsRepository {
-    val totalRewards = 30
+    val totalRewards: Int
+        get() = getItems().size
 
     fun getItems(): List<AchievementItem> {
         return listOf(
-            AchievementItem("eco_starter", "Eco Starter", "Welcome to your eco-journey! You've taken the first step toward reducing your carbon footprint.", "screen_2.png", listOf("Complete your registration", "Complete the carbon footprint survey"), listOf("'Eco Starter' badge", "10 points for tips and challenges")),
-            AchievementItem("green_routine", "Green Routine", "You built daily green habits for one week.", "screen_3.png", listOf("Open the app 7 days in a row", "Complete 3 tips"), listOf("'Green Routine' badge", "15 points for challenges")),
-            AchievementItem("habit_hero", "Habit Hero", "You consistently apply eco-friendly habits.", "screen_4.png", listOf("Complete 10 tips", "Finish 3 learning lessons"), listOf("'Habit Hero' badge", "20 points for challenges")),
-            AchievementItem("carpool_champ", "Carpool Champ", "You replaced solo trips with shared rides.", "question.png", listOf("Read Transport Lesson 2", "Complete 5 shared rides"), listOf("'Carpool Champ' badge", "25 transport points")),
-            AchievementItem("pedal_power", "Pedal Power", "You logged bike rides and reduced car trips.", "greeting.png", listOf("Complete 50 bike rides", "Save at least 100 kg of CO2 emissions"), listOf("'Pedal Power' badge", "30 mobility points")),
-            AchievementItem("eco_commuter", "Eco Commuter", "You optimized your commute for lower emissions.", "loading.png", listOf("Use public transport 10 times", "Complete Transport category"), listOf("'Eco Commuter' badge", "20 mobility points")),
-            AchievementItem("energy_saver", "Energy Saver", "You improved home energy efficiency.", "forgot.png", listOf("Complete 3 home tips", "Reduce monthly energy use by 5%"), listOf("'Energy Saver' badge", "15 home points")),
-            AchievementItem("off_the_grid", "Off the Grid", "You actively lowered household dependence on high-energy habits.", "home.png", listOf("Complete Home category", "Mark 5 personal tips as done"), listOf("'Off the Grid' badge", "25 home points")),
-            AchievementItem("eco_illuminator", "Eco Illuminator", "You switched to efficient lighting and reduced usage.", "screen_5.png", listOf("Finish Home Lesson 2", "Replace 5 bulbs with LEDs"), listOf("'Eco Illuminator' badge", "10 home points")),
-            AchievementItem("carbon_cutter", "Carbon Cutter", "You achieved measurable emissions reduction.", "screen_2.png", listOf("Reduce footprint by 10%", "Complete at least 2 categories"), listOf("'Carbon Cutter' badge", "35 impact points")),
-            AchievementItem("halfway_hero", "Halfway Hero", "You are halfway through your impact journey.", "screen_3.png", listOf("Claim 5 achievements", "Complete 5 lessons"), listOf("'Halfway Hero' badge", "20 impact points")),
-            AchievementItem("carbon_neutral", "Carbon Neutral", "You balanced emissions through long-term action.", "screen_4.png", listOf("Complete all onboarding goals", "Claim 10 achievements"), listOf("'Carbon Neutral' badge", "50 impact points"))
+            // Basics
+            item("eco_starter", "Eco Starter"),
+            item("green_routine", "Green Routine"),
+            item("habit_hero", "Habit Hero"),
+            // Transport
+            item("carpool_champ", "Carpool Champ"),
+            item("pedal_power", "Pedal Power"),
+            item("eco_commuter", "Eco Commuter"),
+            // Energy
+            item("energy_saver", "Energy Saver"),
+            item("eco_illuminator", "Eco Illuminator"),
+            item("power_wise", "Power Wise"),
+            // Carbon footprint
+            item("carbon_cutter", "Carbon Cutter"),
+            item("carbon_neutral", "Carbon Neutral"),
+            item("low_impact", "Low Impact"),
+            // Lifestyle
+            item("off_the_grid", "Off the Grid"),
+            item("halfway_hero", "Halfway Hero"),
+            item("green_guardian", "Green Guardian"),
+            // Nature / Trees
+            item("tree_planter", "Tree Planter"),
+            item("forest_friend", "Forest Friend"),
+            item("earth_protector", "Earth Protector"),
+            // Conscious consumption
+            item("eco_shopper", "Eco Shopper"),
+            item("waste_warrior", "Waste Warrior"),
+            item("reuse_master", "Reuse Master"),
+            // Resources
+            item("water_saver", "Water Saver"),
+            item("resource_keeper", "Resource Keeper"),
+            item("planet_protector", "Planet Protector")
         )
     }
 
@@ -45,25 +66,27 @@ object AchievementsRepository {
 
     fun getStates(context: Context): List<AchievementState> = getItems().map { getState(context, it) }
 
-    private fun computeUnlocked(context: Context, achievementId: String): Boolean {
-        return when (achievementId) {
-            "eco_starter" -> hasOnboardingData()
-            "green_routine" -> LearningRepository.getCategories().isNotEmpty()
-            "habit_hero" -> LearningProgressStore.getTotalCompleted(context) >= 1
-            "carpool_champ" -> LearningProgressStore.isCompleted(context, "transport_2")
-            "pedal_power" -> AchievementStore.isClaimed(context, "carpool_champ")
-            "eco_commuter" -> LearningProgressStore.getCategoryCompleted(context, "transport") >= 2
-            "energy_saver" -> LearningProgressStore.getCategoryCompleted(context, "home") >= 1
-            "off_the_grid" -> LearningProgressStore.getCategoryCompleted(context, "home") >= 3
-            "eco_illuminator" -> LearningProgressStore.isCompleted(context, "home_2")
-            "carbon_cutter" -> AchievementStore.claimedCount(context) >= 3
-            "halfway_hero" -> AchievementStore.claimedCount(context) >= 5
-            "carbon_neutral" -> AchievementStore.claimedCount(context) >= 10
-            else -> false
-        }
+    // Current stage request: keep achievements unopened/locked by default.
+    private fun computeUnlocked(_context: Context, _achievementId: String): Boolean {
+        return false
     }
 
-    private fun hasOnboardingData(): Boolean = !OnboardingSessionStore.latestPayload.isNullOrBlank()
+    private fun item(id: String, title: String): AchievementItem {
+        return AchievementItem(
+            id = id,
+            title = title,
+            description = "This achievement is locked. Complete more eco actions to unlock it.",
+            imageAsset = "achievements/${id.replace('_', '-')}.jpg",
+            requirements = listOf(
+                "Complete related eco activity",
+                "Keep progress consistency"
+            ),
+            rewards = listOf(
+                "'$title' badge",
+                "10 points for tips and challenges"
+            )
+        )
+    }
 }
 
 object AchievementStore {

@@ -7,6 +7,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 
 class LearningLessonActivity : AppCompatActivity() {
 
@@ -26,8 +27,30 @@ class LearningLessonActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.backLink).setOnClickListener { finish() }
         findViewById<TextView>(R.id.lessonNumberText).text = getString(R.string.lesson_number_format_with_index, lessonIndex)
         findViewById<TextView>(R.id.lessonTitleText).text = lesson.title
-        findViewById<TextView>(R.id.lessonContentText).text = lesson.content
+        findViewById<TextView>(R.id.lessonIntroText).text = lesson.introText
+        findViewById<TextView>(R.id.sectionOneTitleText).text = lesson.sectionOneTitle
+        findViewById<TextView>(R.id.sectionOneBodyText).text = lesson.sectionOneBody
+        findViewById<TextView>(R.id.sectionTwoTitleText).text = lesson.sectionTwoTitle
+        findViewById<TextView>(R.id.sectionTwoBodyText).text = lesson.sectionTwoBody
+        findViewById<TextView>(R.id.teacherNameText).text = getString(R.string.learning_teacher_name)
+        findViewById<TextView>(R.id.teacherRoleText).text = getString(R.string.learning_teacher_role)
+        findViewById<ImageView>(R.id.teacherImage).loadAsset("teacher.jpg")
         findViewById<ImageView>(R.id.lessonImage).loadAsset(lesson.imageAsset)
+
+        val bottomImageCard = findViewById<MaterialCardView>(R.id.bottomImageCard)
+        val bottomImage = findViewById<ImageView>(R.id.bottomImage)
+        val bottomCaption = findViewById<TextView>(R.id.bottomCaptionText)
+        if (lesson.bottomImageAsset.isNullOrBlank()) {
+            bottomImageCard.visibility = android.view.View.GONE
+            bottomImage.visibility = android.view.View.GONE
+            bottomCaption.visibility = android.view.View.GONE
+        } else {
+            bottomImageCard.visibility = android.view.View.VISIBLE
+            bottomImage.visibility = android.view.View.VISIBLE
+            bottomCaption.visibility = android.view.View.VISIBLE
+            bottomImage.loadAsset(lesson.bottomImageAsset)
+            bottomCaption.text = lesson.bottomCaption.orEmpty()
+        }
 
         val markButton = findViewById<MaterialButton>(R.id.markCompletedButton)
         val isCompleted = LearningProgressStore.isCompleted(this, lesson.id)
@@ -47,8 +70,11 @@ class LearningLessonActivity : AppCompatActivity() {
     }
 
     private fun ImageView.loadAsset(assetName: String) {
-        assets.open(assetName).use { input ->
-            setImageBitmap(BitmapFactory.decodeStream(input))
+        val bitmap = try {
+            assets.open(assetName).use { input -> BitmapFactory.decodeStream(input) }
+        } catch (_: Exception) {
+            assets.open("home.png").use { input -> BitmapFactory.decodeStream(input) }
         }
+        setImageBitmap(bitmap)
     }
 }

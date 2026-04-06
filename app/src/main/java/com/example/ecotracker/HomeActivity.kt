@@ -55,6 +55,10 @@ class HomeActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, CommunityProfileActivity::class.java))
         }
+        findViewById<TextView>(R.id.sidebarAchievements).setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            startActivity(Intent(this, AchievementsActivity::class.java))
+        }
         findViewById<TextView>(R.id.sidebarSettings).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, SettingsActivity::class.java))

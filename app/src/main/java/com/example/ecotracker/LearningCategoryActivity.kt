@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 class LearningCategoryActivity : AppCompatActivity() {
 
@@ -47,8 +48,13 @@ class LearningCategoryActivity : AppCompatActivity() {
             row.findViewById<TextView>(R.id.lessonTitleText).text = lesson.title
             row.findViewById<TextView>(R.id.lessonDescriptionText).text = lesson.shortDescription
             row.findViewById<ImageView>(R.id.lessonImage).loadAsset(lesson.imageAsset)
-            row.findViewById<TextView>(R.id.alreadyPassedText).visibility =
-                if (LearningProgressStore.isCompleted(this, lesson.id)) android.view.View.VISIBLE else android.view.View.GONE
+            val isCompleted = LearningProgressStore.isCompleted(this, lesson.id)
+            val learnMoreText = row.findViewById<TextView>(R.id.learnMoreText)
+            learnMoreText.text = getString(if (isCompleted) R.string.already_passed else R.string.learn_more)
+            learnMoreText.setTextColor(
+                ContextCompat.getColor(this, if (isCompleted) R.color.lime_7 else R.color.lime_8)
+            )
+            learnMoreText.setTypeface(null, if (isCompleted) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
 
             row.setOnClickListener {
                 startActivity(
@@ -62,8 +68,11 @@ class LearningCategoryActivity : AppCompatActivity() {
     }
 
     private fun ImageView.loadAsset(assetName: String) {
-        assets.open(assetName).use { input ->
-            setImageBitmap(BitmapFactory.decodeStream(input))
+        val bitmap = try {
+            assets.open(assetName).use { input -> BitmapFactory.decodeStream(input) }
+        } catch (_: Exception) {
+            assets.open("home.png").use { input -> BitmapFactory.decodeStream(input) }
         }
+        setImageBitmap(bitmap)
     }
 }
