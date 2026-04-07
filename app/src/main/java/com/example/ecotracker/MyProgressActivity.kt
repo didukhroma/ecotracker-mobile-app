@@ -184,7 +184,7 @@ class MyProgressActivity : AppCompatActivity() {
 
     private fun buildBreakdownIntro(): String {
         val topCategory = data.breakdownFilters.firstOrNull()?.rows
-            ?.filter { it.value > 0.0 }
+            ?.filter { it.value > 0.0 && !it.label.equals("Trees", ignoreCase = true) }
             ?.maxByOrNull { it.value }
 
         if (topCategory == null) {
@@ -283,8 +283,7 @@ object MyProgressRepository {
             MetricRow("Transport", transport),
             MetricRow("Food", food),
             MetricRow("Home", home),
-            MetricRow("Purchases", purchases),
-            MetricRow("Services", services),
+            MetricRow("Purchases", purchases + services),
             MetricRow("Trees", snapshot.natureOffsetKgPerYear)
         )
 
@@ -350,17 +349,12 @@ object MyProgressRepository {
                 BreakdownFilter(
                     label = "Showing purchases",
                     rows = listOf(
-                        MetricRow("Clothing", purchases * 0.24),
-                        MetricRow("Electricals", purchases * 0.18),
-                        MetricRow("Personal care", purchases * 0.14),
-                        MetricRow("Appliances", purchases * 0.13),
-                        MetricRow("Furniture", purchases * 0.21),
-                        MetricRow("Cleaning", purchases * 0.10)
-                    )
-                ),
-                BreakdownFilter(
-                    label = "Showing services",
-                    rows = listOf(
+                        MetricRow("Clothing", purchases * 0.18),
+                        MetricRow("Electricals", purchases * 0.14),
+                        MetricRow("Personal care", purchases * 0.11),
+                        MetricRow("Appliances", purchases * 0.10),
+                        MetricRow("Furniture", purchases * 0.16),
+                        MetricRow("Cleaning", purchases * 0.08),
                         MetricRow("Financial services", services * 0.18),
                         MetricRow("Accommodation services", services * 0.22),
                         MetricRow("Mobile and internet", services * 0.20),

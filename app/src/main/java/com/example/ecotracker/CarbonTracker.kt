@@ -52,6 +52,9 @@ data class CarbonTrackerSnapshot(
 object CarbonTrackerCalculator {
 
     fun calculate(context: Context, answers: OnboardingAnswers?): CarbonTrackerSnapshot {
+        if (!isOnboardingReady(answers)) {
+            return zeroSnapshot()
+        }
         val latestCheckIn = CarbonTrackerStore.getLatestCheckIn(context)
         val selectedTips = PersonalTipsStore.getTodaySelectedIds(context)
         val tipsStats = PersonalTipsStore.getStats(context)
@@ -88,6 +91,46 @@ object CarbonTrackerCalculator {
             recommendations = buildRecommendations(answers, categories, selectedTips, completedLessons),
             confidenceLabel = if (answers == null) "Low confidence" else "Estimated from onboarding, check-ins, and activity",
             latestCheckIn = latestCheckIn
+        )
+    }
+
+    private fun isOnboardingReady(answers: OnboardingAnswers?): Boolean {
+        if (answers == null) return false
+        val drivesCarKnown = answers.drivesCar.equals("Yes", ignoreCase = true) ||
+            answers.drivesCar.equals("No", ignoreCase = true)
+        val drivingSectionReady = if (answers.drivesCar.equals("Yes", ignoreCase = true)) {
+            !answers.drivingFrequency.isNullOrBlank() && !answers.carType.isNullOrBlank()
+        } else {
+            drivesCarKnown
+        }
+
+        return answers.firstName.isNotBlank() &&
+            answers.lastName.isNotBlank() &&
+            answers.country.isNotBlank() &&
+            drivingSectionReady &&
+            answers.diet.isNotEmpty() &&
+            answers.buildingType.isNotBlank() &&
+            answers.goals.isNotEmpty()
+    }
+
+    private fun zeroSnapshot(): CarbonTrackerSnapshot {
+        return CarbonTrackerSnapshot(
+            totalKgPerYear = 0.0,
+            countryAverageKgPerYear = 0.0,
+            globalAverageKgPerYear = 0.0,
+            comparisonVsCountry = "0% same",
+            comparisonVsGlobal = "0% same",
+            categories = listOf(
+                CarbonCategoryScore("transport", "Transport", R.color.chart_blue, 0.0),
+                CarbonCategoryScore("food", "Food", R.color.chart_green, 0.0),
+                CarbonCategoryScore("home", "Home", R.color.chart_yellow, 0.0),
+                CarbonCategoryScore("purchases", "Purchases", R.color.chart_red, 0.0),
+                CarbonCategoryScore("services", "Services", R.color.chart_light_blue, 0.0)
+            ),
+            natureOffsetKgPerYear = 0.0,
+            recommendations = emptyList(),
+            confidenceLabel = "Complete onboarding to unlock your first estimate",
+            latestCheckIn = null
         )
     }
 

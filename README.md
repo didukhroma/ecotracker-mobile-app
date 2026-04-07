@@ -64,5 +64,8 @@ If `google-services.json` is missing, Firebase flows will not work.
 ## Notes
 
 - Carbon tracker is calculated on the client
+- Before onboarding is completed, emission values stay at `0`
+- After onboarding is completed, the first baseline estimate is calculated from onboarding answers
+- `Personal tips` reset daily and sync cumulative progress to Firestore
 - `My progress` uses the same tracker, learning progress, and personal tips state
 - Logout clears local user state and signs out from Firebase
