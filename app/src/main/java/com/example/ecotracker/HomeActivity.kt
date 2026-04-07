@@ -98,7 +98,17 @@ class HomeActivity : AppCompatActivity() {
                 onboardingCompleted = false
             )
             val resolvedData = if (remoteData.userName.isBlank()) fallbackData else remoteData
-            bindHomeData(resolvedData)
+            FirebaseSync.fetchOnboardingAnswers(this) { answers ->
+                val snapshot = CarbonTrackerCalculator.calculate(this, answers)
+                bindHomeData(
+                    resolvedData.copy(
+                        footprint = formatHomeFootprint(snapshot.totalKgPerYear),
+                        challengesParticipated = PersonalTipsStore.selectedCount(this).toString(),
+                        treesSaved = LearningProgressStore.getCategoryCompleted(this, "trees").toString(),
+                        emissionReduced = formatHomeFootprint(snapshot.natureOffsetKgPerYear)
+                    )
+                )
+            }
         }
     }
 
@@ -163,6 +173,14 @@ class HomeActivity : AppCompatActivity() {
     private fun ImageView.loadAsset(assetName: String) {
         assets.open(assetName).use { input ->
             setImageBitmap(BitmapFactory.decodeStream(input))
+        }
+    }
+
+    private fun formatHomeFootprint(value: Double): String {
+        return if (value >= 1000) {
+            String.format("%.1f t", value / 1000.0)
+        } else {
+            String.format("%.0f kg", value)
         }
     }
 }

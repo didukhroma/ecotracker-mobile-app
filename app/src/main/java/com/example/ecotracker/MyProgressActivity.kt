@@ -1,5 +1,6 @@
 package com.example.ecotracker
 
+import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -9,7 +10,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import kotlin.math.max
 
 class MyProgressActivity : AppCompatActivity() {
 
@@ -23,7 +23,6 @@ class MyProgressActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_progress)
 
-        data = MyProgressRepository.getProgressData()
         breakdownListContainer = findViewById(R.id.breakdownListContainer)
         personalTipsListContainer = findViewById(R.id.personalTipsListContainer)
         learningListContainer = findViewById(R.id.learningListContainer)
@@ -31,19 +30,22 @@ class MyProgressActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.backLink).setOnClickListener { finish() }
 
-        bindTopSection()
-        bindBreakdown()
-        bindPersonalTips()
-        bindLearningWay()
+        FirebaseSync.fetchOnboardingAnswers(this) { answers ->
+            data = MyProgressRepository.getProgressData(this, answers)
+            bindTopSection()
+            bindBreakdown()
+            bindPersonalTips()
+            bindLearningWay()
+        }
     }
 
     private fun bindTopSection() {
-        findViewById<TextView>(R.id.valueYou).text = data.relativeEmissions.you.toString()
-        findViewById<TextView>(R.id.valueCitizen).text = data.relativeEmissions.countryCitizen.toString()
-        findViewById<TextView>(R.id.valueGlobal).text = data.relativeEmissions.global.toString()
+        findViewById<TextView>(R.id.valueYou).text = String.format("%.1f", data.relativeEmissions.you)
+        findViewById<TextView>(R.id.valueCitizen).text = String.format("%.1f", data.relativeEmissions.countryCitizen)
+        findViewById<TextView>(R.id.valueGlobal).text = String.format("%.1f", data.relativeEmissions.global)
         findViewById<TextView>(R.id.citizenComparisonValue).text = data.comparisonVsCitizen
         findViewById<TextView>(R.id.globalComparisonValue).text = data.comparisonVsGlobal
-        findViewById<TextView>(R.id.breakdownIntro).text = getString(R.string.carbon_breakdown_intro)
+        findViewById<TextView>(R.id.breakdownIntro).text = buildBreakdownIntro()
 
         renderStackedBar(findViewById(R.id.barYou), data.relativeEmissionsParts.you)
         renderStackedBar(findViewById(R.id.barCitizen), data.relativeEmissionsParts.countryCitizen)
@@ -67,8 +69,7 @@ class MyProgressActivity : AppCompatActivity() {
         renderMetricRows(
             container = breakdownListContainer,
             rows = rows,
-            unitLabel = getString(R.string.kg_unit),
-            maxValue = max(1.0, rows.maxOfOrNull { it.value } ?: 1.0)
+            unitLabel = getString(R.string.kg_unit)
         )
     }
 
@@ -77,8 +78,7 @@ class MyProgressActivity : AppCompatActivity() {
         renderMetricRows(
             container = personalTipsListContainer,
             rows = data.personalTips,
-            unitLabel = getString(R.string.tips_unit),
-            maxValue = max(1.0, data.personalTips.maxOfOrNull { it.value } ?: 1.0)
+            unitLabel = getString(R.string.tips_unit)
         )
     }
 
@@ -87,8 +87,7 @@ class MyProgressActivity : AppCompatActivity() {
         renderMetricRows(
             container = learningListContainer,
             rows = data.learning,
-            unitLabel = getString(R.string.lessons_unit),
-            maxValue = max(1.0, data.learning.maxOfOrNull { it.value } ?: 1.0)
+            unitLabel = getString(R.string.lessons_unit)
         )
     }
 
@@ -120,8 +119,7 @@ class MyProgressActivity : AppCompatActivity() {
     private fun renderMetricRows(
         container: LinearLayout,
         rows: List<MetricRow>,
-        unitLabel: String,
-        maxValue: Double
+        unitLabel: String
     ) {
         container.removeAllViews()
 
@@ -152,14 +150,14 @@ class MyProgressActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    (row.value / maxValue).toFloat().coerceAtLeast(0f)
+                    (row.value / row.total.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
                 )
             }
             val barEmpty = View(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    (1f - (row.value / maxValue).toFloat().coerceIn(0f, 1f))
+                    (1f - (row.value / row.total.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f))
                 )
             }
             barWrapper.addView(barFill)
@@ -181,6 +179,31 @@ class MyProgressActivity : AppCompatActivity() {
             rowLayout.addView(barWrapper)
             rowLayout.addView(value)
             container.addView(rowLayout)
+        }
+    }
+
+    private fun buildBreakdownIntro(): String {
+        val topCategory = data.breakdownFilters.firstOrNull()?.rows
+            ?.filter { it.value > 0.0 }
+            ?.maxByOrNull { it.value }
+
+        if (topCategory == null) {
+            return "Your carbon footprint breakdown will update here as soon as you complete onboarding, tips, or learning progress."
+        }
+
+        val categoryFilter = data.breakdownFilters.firstOrNull {
+            it.label.equals("Showing ${topCategory.label.lowercase()}", ignoreCase = true)
+        }
+        val topSubcategory = categoryFilter?.rows
+            ?.filter { it.value > 0.0 }
+            ?.maxByOrNull { it.value }
+
+        val categoryKg = String.format("%.1f", topCategory.value / 1000.0)
+        return if (topSubcategory != null && topCategory.value > 0.0) {
+            val share = ((topSubcategory.value / topCategory.value) * 100).toInt()
+            "The largest part of your carbon footprint is ${topCategory.label.lowercase()} at $categoryKg tonnes of CO2 per year. The largest part of this is ${topSubcategory.label.lowercase()} at $share% so this could be a good place to look at reductions."
+        } else {
+            "The largest part of your carbon footprint is ${topCategory.label.lowercase()} at $categoryKg tonnes of CO2 per year. This is currently your best place to focus for reductions."
         }
     }
 
@@ -218,107 +241,143 @@ data class RelativeEmissionParts(
 
 data class MetricRow(
     val label: String,
-    val value: Double
+    val value: Double,
+    val total: Double = value
 )
 
 object MyProgressRepository {
     // Integration point: replace with server endpoint response.
-    fun getProgressData(): ProgressData {
+    fun getProgressData(context: Context, answers: OnboardingAnswers?): ProgressData {
+        val snapshot = CarbonTrackerCalculator.calculate(context, answers)
+        val categoriesById = snapshot.categories.associateBy { it.id }
+        val transport = categoriesById["transport"]?.kgPerYear ?: 0.0
+        val food = categoriesById["food"]?.kgPerYear ?: 0.0
+        val home = categoriesById["home"]?.kgPerYear ?: 0.0
+        val purchases = categoriesById["purchases"]?.kgPerYear ?: 0.0
+        val services = categoriesById["services"]?.kgPerYear ?: 0.0
+        val youTons = snapshot.totalKgPerYear / 1000.0
+        val countryTons = snapshot.countryAverageKgPerYear / 1000.0
+        val globalTons = snapshot.globalAverageKgPerYear / 1000.0
+
+        val allRows = listOf(
+            MetricRow("Transport", transport),
+            MetricRow("Food", food),
+            MetricRow("Home", home),
+            MetricRow("Purchases", purchases),
+            MetricRow("Services", services),
+            MetricRow("Trees", snapshot.natureOffsetKgPerYear)
+        )
+
         return ProgressData(
-            relativeEmissions = RelativeEmissions(15.8, 19.6, 5.1),
+            relativeEmissions = RelativeEmissions(youTons, countryTons, globalTons),
             relativeEmissionsParts = RelativeEmissionParts(
-                you = listOf(3.6, 1.2, 2.1, 4.0, 2.0, 2.9),
-                countryCitizen = listOf(4.3, 1.8, 3.8, 5.6, 1.5, 2.6),
-                global = listOf(1.2, 0.7, 1.1, 1.0, 0.5, 0.6)
+                you = listOf(
+                    transport * 0.82,
+                    transport * 0.18,
+                    food,
+                    home * 0.65,
+                    (home * 0.35) + (services * 0.45),
+                    purchases + (services * 0.55)
+                ).map { it / 1000.0 },
+                countryCitizen = listOf(
+                    countryTons * 0.26,
+                    countryTons * 0.08,
+                    countryTons * 0.19,
+                    countryTons * 0.18,
+                    countryTons * 0.12,
+                    countryTons * 0.17
+                ),
+                global = listOf(
+                    globalTons * 0.24,
+                    globalTons * 0.06,
+                    globalTons * 0.22,
+                    globalTons * 0.20,
+                    globalTons * 0.11,
+                    globalTons * 0.17
+                )
             ),
-            comparisonVsCitizen = "19 % less",
-            comparisonVsGlobal = "309 % more",
+            comparisonVsCitizen = snapshot.comparisonVsCountry.replace("%", " %"),
+            comparisonVsGlobal = snapshot.comparisonVsGlobal.replace("%", " %"),
             breakdownFilters = listOf(
                 BreakdownFilter(
                     label = "Showing all sections",
-                    rows = listOf(
-                        MetricRow("Transport", 0.0),
-                        MetricRow("Food", 0.0),
-                        MetricRow("Home", 0.0),
-                        MetricRow("Purchases", 0.0),
-                        MetricRow("Services", 0.0),
-                        MetricRow("Tree", 0.0)
-                    )
+                    rows = allRows
                 ),
                 BreakdownFilter(
                     label = "Showing transport",
                     rows = listOf(
-                        MetricRow("Car", 0.0),
-                        MetricRow("Bus", 0.0),
-                        MetricRow("Rail", 0.0),
-                        MetricRow("Ferry", 0.0),
-                        MetricRow("Tube and Light rail", 0.0),
-                        MetricRow("Taxi", 0.0)
+                        MetricRow("Car", transport * 0.68),
+                        MetricRow("Bus", transport * 0.08),
+                        MetricRow("Rail", transport * 0.07),
+                        MetricRow("Ferry", transport * 0.03),
+                        MetricRow("Tube and Light rail", transport * 0.07),
+                        MetricRow("Taxi", transport * 0.07)
                     )
                 ),
                 BreakdownFilter(
                     label = "Showing food",
                     rows = listOf(
-                        MetricRow("Diet", 0.0),
-                        MetricRow("Food waste", 0.0),
-                        MetricRow("Pet food", 0.0)
+                        MetricRow("Diet", food * 0.72),
+                        MetricRow("Food waste", food * 0.20),
+                        MetricRow("Pet food", food * 0.08)
                     )
                 ),
                 BreakdownFilter(
                     label = "Showing home",
                     rows = listOf(
-                        MetricRow("Gas", 0.0),
-                        MetricRow("Electricity", 0.0),
-                        MetricRow("Waste", 0.0),
-                        MetricRow("Home improvement", 0.0),
-                        MetricRow("Water", 0.0),
-                        MetricRow("Oil", 0.0)
+                        MetricRow("Gas", home * 0.24),
+                        MetricRow("Electricity", home * 0.28),
+                        MetricRow("Waste", home * 0.10),
+                        MetricRow("Home improvement", home * 0.16),
+                        MetricRow("Water", home * 0.12),
+                        MetricRow("Oil", home * 0.10)
                     )
                 ),
                 BreakdownFilter(
                     label = "Showing purchases",
                     rows = listOf(
-                        MetricRow("Clothing", 0.0),
-                        MetricRow("Electricals", 0.0),
-                        MetricRow("Personal care", 0.0),
-                        MetricRow("Appliances", 0.0),
-                        MetricRow("Furniture", 0.0),
-                        MetricRow("Cleaning", 0.0)
+                        MetricRow("Clothing", purchases * 0.24),
+                        MetricRow("Electricals", purchases * 0.18),
+                        MetricRow("Personal care", purchases * 0.14),
+                        MetricRow("Appliances", purchases * 0.13),
+                        MetricRow("Furniture", purchases * 0.21),
+                        MetricRow("Cleaning", purchases * 0.10)
                     )
                 ),
                 BreakdownFilter(
                     label = "Showing services",
                     rows = listOf(
-                        MetricRow("Financial services", 0.0),
-                        MetricRow("Accommodation services", 0.0),
-                        MetricRow("Mobile and internet", 0.0),
-                        MetricRow("Pharmacy", 0.0),
-                        MetricRow("Recreation services", 0.0)
+                        MetricRow("Financial services", services * 0.18),
+                        MetricRow("Accommodation services", services * 0.22),
+                        MetricRow("Mobile and internet", services * 0.20),
+                        MetricRow("Pharmacy", services * 0.16),
+                        MetricRow("Recreation services", services * 0.24)
                     )
                 ),
                 BreakdownFilter(
                     label = "Showing trees",
                     rows = listOf(
-                        MetricRow("Forest protection", 0.0),
-                        MetricRow("Tree planting", 0.0)
+                        MetricRow("Forest protection", snapshot.natureOffsetKgPerYear * 0.55),
+                        MetricRow("Tree planting", snapshot.natureOffsetKgPerYear * 0.45)
                     )
                 )
             ),
-            personalTipsCount = 0,
+            personalTipsCount = PersonalTipsStore.selectedCount(context),
             personalTips = listOf(
-                MetricRow("Planet saver", 0.0),
-                MetricRow("Big impact", 0.0),
-                MetricRow("Decent impact", 0.0),
-                MetricRow("Good impact", 0.0),
-                MetricRow("Small impact", 0.0)
+                MetricRow("Transport", if (PersonalTipsStore.isSelected(context, "transport_tip")) 1.0 else 0.0, 1.0),
+                MetricRow("Home energy", if (PersonalTipsStore.isSelected(context, "energy_tip")) 1.0 else 0.0, 1.0),
+                MetricRow("Food", if (PersonalTipsStore.isSelected(context, "food_tip")) 1.0 else 0.0, 1.0),
+                MetricRow("Shopping", if (PersonalTipsStore.isSelected(context, "shopping_tip")) 1.0 else 0.0, 1.0),
+                MetricRow("Home water", if (PersonalTipsStore.isSelected(context, "water_tip")) 1.0 else 0.0, 1.0),
+                MetricRow("Trees", if (PersonalTipsStore.isSelected(context, "trees_tip")) 1.0 else 0.0, 1.0)
             ),
-            learningCount = 0,
+            learningCount = LearningProgressStore.getTotalCompleted(context),
             learning = listOf(
-                MetricRow("Transport", 0.0),
-                MetricRow("Food", 0.0),
-                MetricRow("Home", 0.0),
-                MetricRow("Purchases", 0.0),
-                MetricRow("Planet", 0.0)
+                MetricRow("Transport", LearningProgressStore.getCategoryCompleted(context, "transport").toDouble(), LearningRepository.getCategory("transport")?.lessons?.size?.toDouble() ?: 1.0),
+                MetricRow("Food", LearningProgressStore.getCategoryCompleted(context, "food").toDouble(), LearningRepository.getCategory("food")?.lessons?.size?.toDouble() ?: 1.0),
+                MetricRow("Home", LearningProgressStore.getCategoryCompleted(context, "home").toDouble(), LearningRepository.getCategory("home")?.lessons?.size?.toDouble() ?: 1.0),
+                MetricRow("Purchases", LearningProgressStore.getCategoryCompleted(context, "purchases").toDouble(), LearningRepository.getCategory("purchases")?.lessons?.size?.toDouble() ?: 1.0),
+                MetricRow("Trees", LearningProgressStore.getCategoryCompleted(context, "trees").toDouble(), LearningRepository.getCategory("trees")?.lessons?.size?.toDouble() ?: 1.0)
             )
         )
     }

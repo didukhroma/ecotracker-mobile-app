@@ -97,6 +97,8 @@ object FirebaseSync {
         LearningProgressStore.setCompletedIds(context, emptySet())
         PersonalTipsStore.setSelectedIds(context, emptySet())
         AchievementStore.setClaimedIds(context, emptySet())
+        CarbonTrackerStore.clearLatestCheckIn(context)
+        CarbonTrackerStore.setHistory(context, emptyList())
     }
 
     fun saveOnboardingAnswers(
@@ -190,6 +192,62 @@ object FirebaseSync {
                     "claimedAchievementIds" to claimedAchievementIds,
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
+            )
+    }
+
+    fun saveCarbonTrackerSnapshot(context: Context, snapshot: CarbonTrackerSnapshot) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        if (!isAvailable(context)) return
+        val latestCheckIn = CarbonTrackerStore.getLatestCheckIn(context)
+        val history = CarbonTrackerStore.getHistory(context)
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("carbonTracker")
+            .set(
+                mapOf(
+                    "totalKgPerYear" to snapshot.totalKgPerYear,
+                    "countryAverageKgPerYear" to snapshot.countryAverageKgPerYear,
+                    "globalAverageKgPerYear" to snapshot.globalAverageKgPerYear,
+                    "comparisonVsCountry" to snapshot.comparisonVsCountry,
+                    "comparisonVsGlobal" to snapshot.comparisonVsGlobal,
+                    "natureOffsetKgPerYear" to snapshot.natureOffsetKgPerYear,
+                    "confidenceLabel" to snapshot.confidenceLabel,
+                    "latestCheckIn" to latestCheckIn?.let {
+                        mapOf(
+                            "monthKey" to it.monthKey,
+                            "carKmPerMonth" to it.carKmPerMonth,
+                            "flightsPerYear" to it.flightsPerYear,
+                            "homeEnergyDeltaPercent" to it.homeEnergyDeltaPercent,
+                            "shoppingDeltaPercent" to it.shoppingDeltaPercent,
+                            "savedAtMs" to it.savedAtMs
+                        )
+                    },
+                    "history" to history.map {
+                        mapOf(
+                            "monthKey" to it.monthKey,
+                            "totalKgPerYear" to it.totalKgPerYear,
+                            "createdAtMs" to it.createdAtMs
+                        )
+                    },
+                    "categories" to snapshot.categories.map {
+                        mapOf(
+                            "id" to it.id,
+                            "title" to it.title,
+                            "kgPerYear" to it.kgPerYear
+                        )
+                    },
+                    "recommendations" to snapshot.recommendations.map {
+                        mapOf(
+                            "title" to it.title,
+                            "description" to it.description
+                        )
+                    },
+                    "updatedAt" to FieldValue.serverTimestamp()
+                ),
+                SetOptions.merge()
             )
     }
 
@@ -401,7 +459,9 @@ object FirebaseSync {
     private fun hydrateUserProgress(context: Context, onDone: () -> Unit) {
         hydrateLearningProgress(context) {
             hydratePersonalTips(context) {
-                hydrateAchievements(context, onDone)
+                hydrateAchievements(context) {
+                    hydrateCarbonTracker(context, onDone)
+                }
             }
         }
     }
@@ -476,6 +536,52 @@ object FirebaseSync {
                 val ids = snap.get("claimedAchievementIds") as? List<*>
                 val parsed = ids?.filterIsInstance<String>()?.toSet().orEmpty()
                 AchievementStore.setClaimedIds(context, parsed)
+                onDone()
+            }
+            .addOnFailureListener { onDone() }
+    }
+
+    private fun hydrateCarbonTracker(context: Context, onDone: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            onDone()
+            return
+        }
+        if (!isAvailable(context)) {
+            onDone()
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("carbonTracker")
+            .get()
+            .addOnSuccessListener { snap ->
+                val latest = snap.get("latestCheckIn") as? Map<*, *>
+                if (latest != null) {
+                    CarbonTrackerStore.setLatestCheckIn(
+                        context,
+                        CarbonCheckIn(
+                            monthKey = latest["monthKey"] as? String ?: CarbonTrackerStore.currentMonthKey(),
+                            carKmPerMonth = (latest["carKmPerMonth"] as? Number)?.toInt() ?: 0,
+                            flightsPerYear = (latest["flightsPerYear"] as? Number)?.toInt() ?: 0,
+                            homeEnergyDeltaPercent = (latest["homeEnergyDeltaPercent"] as? Number)?.toInt() ?: 0,
+                            shoppingDeltaPercent = (latest["shoppingDeltaPercent"] as? Number)?.toInt() ?: 0,
+                            savedAtMs = (latest["savedAtMs"] as? Number)?.toLong() ?: System.currentTimeMillis()
+                        )
+                    )
+                }
+
+                val history = (snap.get("history") as? List<*>)?.mapNotNull { item ->
+                    val map = item as? Map<*, *> ?: return@mapNotNull null
+                    CarbonHistoryEntry(
+                        monthKey = map["monthKey"] as? String ?: return@mapNotNull null,
+                        totalKgPerYear = (map["totalKgPerYear"] as? Number)?.toDouble() ?: 0.0,
+                        createdAtMs = (map["createdAtMs"] as? Number)?.toLong() ?: 0L
+                    )
+                }.orEmpty()
+                CarbonTrackerStore.setHistory(context, history)
                 onDone()
             }
             .addOnFailureListener { onDone() }
