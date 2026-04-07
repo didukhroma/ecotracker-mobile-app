@@ -65,7 +65,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<android.view.View>(R.id.logoutText).setOnClickListener {
-            FirebaseSync.signOut()
+            FirebaseSync.signOut(this)
             HomeCacheStore.invalidate(this)
             OnboardingSessionStore.latestPayload = null
             finishAffinity()
@@ -76,7 +76,9 @@ class HomeActivity : AppCompatActivity() {
         val onboardingPayload = intent.getStringExtra(QuestionActivity.EXTRA_ONBOARDING_PAYLOAD)
             ?: OnboardingSessionStore.latestPayload
 
-        loadHomeData(onboardingPayload)
+        FirebaseSync.refreshUserProgress(this) {
+            loadHomeData(onboardingPayload)
+        }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

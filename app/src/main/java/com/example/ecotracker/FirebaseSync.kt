@@ -61,7 +61,7 @@ object FirebaseSync {
         FirebaseAuth.getInstance()
             .signInWithEmailAndPassword(email, password)
             .addOnSuccessListener {
-                hydrateLearningProgress(context) {
+                hydrateUserProgress(context) {
                     onSuccess()
                 }
             }
@@ -92,8 +92,11 @@ object FirebaseSync {
         return FirebaseAuth.getInstance().currentUser != null
     }
 
-    fun signOut() {
+    fun signOut(context: Context) {
         FirebaseAuth.getInstance().signOut()
+        LearningProgressStore.setCompletedIds(context, emptySet())
+        PersonalTipsStore.setSelectedIds(context, emptySet())
+        AchievementStore.setClaimedIds(context, emptySet())
     }
 
     fun saveOnboardingAnswers(
@@ -152,6 +155,46 @@ object FirebaseSync {
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
             )
+    }
+
+    fun syncPersonalTips(context: Context) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        if (!isAvailable(context)) return
+
+        val selectedTipIds = PersonalTipsStore.getSelectedIds(context).toList()
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("personalTips")
+            .set(
+                mapOf(
+                    "selectedTipIds" to selectedTipIds,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            )
+    }
+
+    fun syncAchievements(context: Context) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        if (!isAvailable(context)) return
+
+        val claimedAchievementIds = AchievementStore.getClaimedIds(context).toList()
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("achievements")
+            .set(
+                mapOf(
+                    "claimedAchievementIds" to claimedAchievementIds,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            )
+    }
+
+    fun refreshUserProgress(context: Context, onDone: () -> Unit) {
+        hydrateUserProgress(context, onDone)
     }
 
     fun fetchHomeData(
@@ -355,6 +398,14 @@ object FirebaseSync {
             }
     }
 
+    private fun hydrateUserProgress(context: Context, onDone: () -> Unit) {
+        hydrateLearningProgress(context) {
+            hydratePersonalTips(context) {
+                hydrateAchievements(context, onDone)
+            }
+        }
+    }
+
     private fun hydrateLearningProgress(context: Context, onDone: () -> Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
             onDone()
@@ -375,6 +426,56 @@ object FirebaseSync {
                 val ids = snap.get("completedLessonIds") as? List<*>
                 val parsed = ids?.filterIsInstance<String>()?.toSet().orEmpty()
                 LearningProgressStore.setCompletedIds(context, parsed)
+                onDone()
+            }
+            .addOnFailureListener { onDone() }
+    }
+
+    private fun hydratePersonalTips(context: Context, onDone: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            onDone()
+            return
+        }
+        if (!isAvailable(context)) {
+            onDone()
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("personalTips")
+            .get()
+            .addOnSuccessListener { snap ->
+                val ids = snap.get("selectedTipIds") as? List<*>
+                val parsed = ids?.filterIsInstance<String>()?.toSet().orEmpty()
+                PersonalTipsStore.setSelectedIds(context, parsed)
+                onDone()
+            }
+            .addOnFailureListener { onDone() }
+    }
+
+    private fun hydrateAchievements(context: Context, onDone: () -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: run {
+            onDone()
+            return
+        }
+        if (!isAvailable(context)) {
+            onDone()
+            return
+        }
+
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(uid)
+            .collection("profile")
+            .document("achievements")
+            .get()
+            .addOnSuccessListener { snap ->
+                val ids = snap.get("claimedAchievementIds") as? List<*>
+                val parsed = ids?.filterIsInstance<String>()?.toSet().orEmpty()
+                AchievementStore.setClaimedIds(context, parsed)
                 onDone()
             }
             .addOnFailureListener { onDone() }
