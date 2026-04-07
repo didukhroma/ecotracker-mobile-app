@@ -53,15 +53,16 @@ object CarbonTrackerCalculator {
 
     fun calculate(context: Context, answers: OnboardingAnswers?): CarbonTrackerSnapshot {
         val latestCheckIn = CarbonTrackerStore.getLatestCheckIn(context)
-        val selectedTips = PersonalTipsStore.getSelectedIds(context)
+        val selectedTips = PersonalTipsStore.getTodaySelectedIds(context)
+        val tipsStats = PersonalTipsStore.getStats(context)
         val completedLessons = LearningProgressStore.getCompletedIds(context)
 
-        val transport = calculateTransport(answers, latestCheckIn, selectedTips, completedLessons)
-        val food = calculateFood(answers, selectedTips, completedLessons)
-        val home = calculateHome(answers, latestCheckIn, selectedTips, completedLessons)
-        val purchases = calculatePurchases(latestCheckIn, selectedTips, completedLessons)
-        val services = calculateServices(selectedTips, completedLessons)
-        val natureOffset = calculateNatureOffset(selectedTips, completedLessons)
+        val transport = calculateTransport(answers, latestCheckIn, selectedTips, completedLessons, tipsStats.currentStreak)
+        val food = calculateFood(answers, selectedTips, completedLessons, tipsStats.currentStreak)
+        val home = calculateHome(answers, latestCheckIn, selectedTips, completedLessons, tipsStats.currentStreak)
+        val purchases = calculatePurchases(latestCheckIn, selectedTips, completedLessons, tipsStats.currentStreak)
+        val services = calculateServices(selectedTips, completedLessons, tipsStats.currentStreak)
+        val natureOffset = calculateNatureOffset(selectedTips, completedLessons, tipsStats.currentStreak)
 
         val categories = listOf(
             CarbonCategoryScore("transport", "Transport", R.color.chart_blue, transport),
@@ -94,7 +95,8 @@ object CarbonTrackerCalculator {
         answers: OnboardingAnswers?,
         checkIn: CarbonCheckIn?,
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val base = if (answers?.drivesCar.equals("Yes", ignoreCase = true)) {
             val frequency = when (answers?.drivingFrequency) {
@@ -127,15 +129,17 @@ object CarbonTrackerCalculator {
         }
         val flightAdjustment = (checkIn?.flightsPerYear ?: 0) * 180.0
 
+        val streakBonus = if (selectedTips.contains("transport_tip")) (currentStreak * 0.005).coerceAtMost(0.03) else 0.0
         val tipReduction = if (selectedTips.contains("transport_tip")) 0.08 else 0.0
         val learningReduction = lessonReduction(completedLessons, "transport", perLesson = 0.012, maxReduction = 0.12)
-        return reduced((base * kmAdjustment) + flightAdjustment, tipReduction + learningReduction)
+        return reduced((base * kmAdjustment) + flightAdjustment, tipReduction + streakBonus + learningReduction)
     }
 
     private fun calculateFood(
         answers: OnboardingAnswers?,
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val diet = answers?.diet.orEmpty()
         val base = when {
@@ -144,16 +148,18 @@ object CarbonTrackerCalculator {
             diet.contains("No red meat") -> 2100.0
             else -> 2750.0
         }
+        val streakBonus = if (selectedTips.contains("food_tip")) (currentStreak * 0.004).coerceAtMost(0.025) else 0.0
         val tipReduction = if (selectedTips.contains("food_tip")) 0.07 else 0.0
         val learningReduction = lessonReduction(completedLessons, "food", perLesson = 0.01, maxReduction = 0.1)
-        return reduced(base, tipReduction + learningReduction)
+        return reduced(base, tipReduction + streakBonus + learningReduction)
     }
 
     private fun calculateHome(
         answers: OnboardingAnswers?,
         checkIn: CarbonCheckIn?,
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val people = ((answers?.peopleExcludingSelf ?: 0) + 1).coerceAtLeast(1)
         val buildingBase = when (answers?.buildingType) {
@@ -167,26 +173,33 @@ object CarbonTrackerCalculator {
             if (selectedTips.contains("energy_tip")) add(0.06)
             if (selectedTips.contains("water_tip")) add(0.04)
         }.sum()
+        val streakBonus = buildList {
+            if (selectedTips.contains("energy_tip")) add((currentStreak * 0.004).coerceAtMost(0.02))
+            if (selectedTips.contains("water_tip")) add((currentStreak * 0.003).coerceAtMost(0.015))
+        }.sum()
         val learningReduction = lessonReduction(completedLessons, "home", perLesson = 0.01, maxReduction = 0.12)
         val deltaMultiplier = 1 + ((checkIn?.homeEnergyDeltaPercent ?: 0) / 100.0)
-        return reduced(perPerson * deltaMultiplier.coerceIn(0.65, 1.45), tipReduction + learningReduction)
+        return reduced(perPerson * deltaMultiplier.coerceIn(0.65, 1.45), tipReduction + streakBonus + learningReduction)
     }
 
     private fun calculatePurchases(
         checkIn: CarbonCheckIn?,
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val base = 1850.0
+        val streakBonus = if (selectedTips.contains("shopping_tip")) (currentStreak * 0.005).coerceAtMost(0.03) else 0.0
         val tipReduction = if (selectedTips.contains("shopping_tip")) 0.09 else 0.0
         val learningReduction = lessonReduction(completedLessons, "purchases", perLesson = 0.012, maxReduction = 0.12)
         val deltaMultiplier = 1 + ((checkIn?.shoppingDeltaPercent ?: 0) / 100.0)
-        return reduced(base * deltaMultiplier.coerceIn(0.65, 1.5), tipReduction + learningReduction)
+        return reduced(base * deltaMultiplier.coerceIn(0.65, 1.5), tipReduction + streakBonus + learningReduction)
     }
 
     private fun calculateServices(
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val base = 980.0
         val crossCategoryBonus = buildList {
@@ -194,18 +207,21 @@ object CarbonTrackerCalculator {
             if (selectedTips.contains("shopping_tip")) add(0.02)
             if (selectedTips.contains("water_tip")) add(0.015)
         }.sum()
+        val streakBonus = if (selectedTips.isNotEmpty()) (currentStreak * 0.002).coerceAtMost(0.02) else 0.0
         val learningCount = completedLessons.size
         val learningReduction = (learningCount * 0.0025).coerceAtMost(0.05)
-        return reduced(base, crossCategoryBonus + learningReduction)
+        return reduced(base, crossCategoryBonus + streakBonus + learningReduction)
     }
 
     private fun calculateNatureOffset(
         selectedTips: Set<String>,
-        completedLessons: Set<String>
+        completedLessons: Set<String>,
+        currentStreak: Int
     ): Double {
         val tipBonus = if (selectedTips.contains("trees_tip")) 180.0 else 0.0
+        val streakBonus = if (selectedTips.contains("trees_tip")) (currentStreak * 12.0).coerceAtMost(96.0) else 0.0
         val lessonsBonus = completedLessons.count { it.startsWith("trees_") } * 28.0
-        return (tipBonus + lessonsBonus).coerceAtMost(460.0)
+        return (tipBonus + streakBonus + lessonsBonus).coerceAtMost(520.0)
     }
 
     private fun lessonReduction(

@@ -103,7 +103,7 @@ class HomeActivity : AppCompatActivity() {
                 bindHomeData(
                     resolvedData.copy(
                         footprint = formatHomeFootprint(snapshot.totalKgPerYear),
-                        challengesParticipated = PersonalTipsStore.selectedCount(this).toString(),
+                        challengesParticipated = PersonalTipsStore.totalCompletionEvents(this).toString(),
                         treesSaved = LearningProgressStore.getCategoryCompleted(this, "trees").toString(),
                         emissionReduced = formatHomeFootprint(snapshot.natureOffsetKgPerYear)
                     )

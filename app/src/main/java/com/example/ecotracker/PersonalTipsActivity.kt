@@ -9,6 +9,12 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONArray
+import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.max
 
 class PersonalTipsActivity : AppCompatActivity() {
 
@@ -19,6 +25,13 @@ class PersonalTipsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.backLink).setOnClickListener { finish() }
 
         val tipsContainer: LinearLayout = findViewById(R.id.tipsContainer)
+        val stats = PersonalTipsStore.getStats(this)
+        findViewById<TextView>(R.id.tipsDailySummary).text = getString(
+            R.string.personal_tips_daily_summary,
+            stats.todaySelectedIds.size,
+            PersonalTipsRepository.getTips(this).size,
+            stats.currentStreak
+        )
         val tips = PersonalTipsRepository.getTips(this)
         val inflater = LayoutInflater.from(this)
 
@@ -106,37 +119,187 @@ object PersonalTipsRepository {
     }
 }
 
+data class PersonalTipsStats(
+    val todayKey: String,
+    val todaySelectedIds: Set<String>,
+    val dailyCompletions: Map<String, Set<String>>,
+    val totalCompletionEvents: Int,
+    val currentStreak: Int,
+    val bestStreak: Int,
+    val activeDaysCount: Int
+)
+
 object PersonalTipsStore {
     private const val PREFS_NAME = "personal_tips_state"
-    private const val KEY_SELECTED_IDS = "selected_tip_ids"
+    private const val KEY_DAILY_COMPLETIONS = "daily_completions"
+    private const val KEY_SELECTED_IDS_LEGACY = "selected_tip_ids"
+
+    fun currentDateKey(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
+    fun getTodaySelectedIds(context: Context): Set<String> = getStats(context).todaySelectedIds
 
     fun getSelectedIds(context: Context): Set<String> {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getStringSet(KEY_SELECTED_IDS, emptySet())
-            ?.toSet()
-            ?: emptySet()
+        return getTodaySelectedIds(context)
     }
 
     fun isSelected(context: Context, tipId: String): Boolean = getSelectedIds(context).contains(tipId)
 
     fun selectedCount(context: Context): Int = getSelectedIds(context).size
 
+    fun totalCompletionEvents(context: Context): Int = getStats(context).totalCompletionEvents
+
+    fun activeDaysCount(context: Context): Int = getStats(context).activeDaysCount
+
+    fun currentStreak(context: Context): Int = getStats(context).currentStreak
+
+    fun bestStreak(context: Context): Int = getStats(context).bestStreak
+
+    fun completionCountForTip(context: Context, tipId: String): Int {
+        return getStats(context).dailyCompletions.values.count { it.contains(tipId) }
+    }
+
+    fun hasEverCompleted(context: Context, tipId: String): Boolean = completionCountForTip(context, tipId) > 0
+
+    fun uniqueCompletedTipsCount(context: Context): Int {
+        val allIds = getStats(context).dailyCompletions.values.flatten().toSet()
+        return allIds.size
+    }
+
+    fun getStats(context: Context): PersonalTipsStats {
+        val daily = migrateAndReadDailyCompletions(context)
+        val todayKey = currentDateKey()
+        val sortedDates = daily.keys.sorted()
+        val currentStreak = computeCurrentStreak(sortedDates, todayKey)
+        val bestStreak = computeBestStreak(sortedDates)
+        val totalCompletionEvents = daily.values.sumOf { it.size }
+        return PersonalTipsStats(
+            todayKey = todayKey,
+            todaySelectedIds = daily[todayKey].orEmpty(),
+            dailyCompletions = daily,
+            totalCompletionEvents = totalCompletionEvents,
+            currentStreak = currentStreak,
+            bestStreak = bestStreak,
+            activeDaysCount = daily.size
+        )
+    }
+
     fun setSelected(context: Context, tipId: String, selected: Boolean) {
-        val updated = getSelectedIds(context).toMutableSet().apply {
+        val daily = migrateAndReadDailyCompletions(context).toMutableMap()
+        val todayKey = currentDateKey()
+        val updated = daily[todayKey].orEmpty().toMutableSet().apply {
             if (selected) add(tipId) else remove(tipId)
         }
-        persist(context, updated)
+        if (updated.isEmpty()) {
+            daily.remove(todayKey)
+        } else {
+            daily[todayKey] = updated
+        }
+        persist(context, daily)
         FirebaseSync.syncPersonalTips(context)
     }
 
     fun setSelectedIds(context: Context, ids: Set<String>) {
-        persist(context, ids)
+        persist(context, mapOf(currentDateKey() to ids))
     }
 
-    private fun persist(context: Context, ids: Set<String>) {
+    fun setDailyCompletions(context: Context, dailyCompletions: Map<String, Set<String>>) {
+        persist(context, dailyCompletions)
+    }
+
+    fun clear(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .putStringSet(KEY_SELECTED_IDS, ids)
+            .remove(KEY_DAILY_COMPLETIONS)
+            .remove(KEY_SELECTED_IDS_LEGACY)
             .apply()
+    }
+
+    private fun migrateAndReadDailyCompletions(context: Context): Map<String, Set<String>> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_DAILY_COMPLETIONS, null)
+        if (!raw.isNullOrBlank()) {
+            return decodeDailyCompletions(raw)
+        }
+
+        val legacy = prefs.getStringSet(KEY_SELECTED_IDS_LEGACY, emptySet())?.toSet().orEmpty()
+        if (legacy.isNotEmpty()) {
+            val migrated = mapOf(currentDateKey() to legacy)
+            persist(context, migrated)
+            prefs.edit().remove(KEY_SELECTED_IDS_LEGACY).apply()
+            return migrated
+        }
+        return emptyMap()
+    }
+
+    private fun decodeDailyCompletions(raw: String): Map<String, Set<String>> {
+        return try {
+            val json = JSONObject(raw)
+            buildMap {
+                json.keys().forEach { dateKey ->
+                    val ids = json.optJSONArray(dateKey)?.toStringSet().orEmpty()
+                    if (ids.isNotEmpty()) put(dateKey, ids)
+                }
+            }
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun persist(context: Context, dailyCompletions: Map<String, Set<String>>) {
+        val json = JSONObject()
+        dailyCompletions.toSortedMap().forEach { (dateKey, ids) ->
+            json.put(dateKey, JSONArray(ids.toList().sorted()))
+        }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DAILY_COMPLETIONS, json.toString())
+            .apply()
+    }
+
+    private fun JSONArray.toStringSet(): Set<String> {
+        return buildSet {
+            for (index in 0 until length()) {
+                add(optString(index))
+            }
+        }.filter { it.isNotBlank() }.toSet()
+    }
+
+    private fun computeCurrentStreak(sortedDates: List<String>, todayKey: String): Int {
+        if (sortedDates.isEmpty()) return 0
+        var cursor = todayKey
+        var streak = 0
+        while (sortedDates.contains(cursor)) {
+            streak += 1
+            cursor = previousDateKey(cursor) ?: break
+        }
+        return streak
+    }
+
+    private fun computeBestStreak(sortedDates: List<String>): Int {
+        if (sortedDates.isEmpty()) return 0
+        var best = 0
+        var current = 0
+        var previous: String? = null
+        sortedDates.forEach { dateKey ->
+            current = if (previous != null && previousDateKey(dateKey) == previous) {
+                current + 1
+            } else {
+                1
+            }
+            best = max(best, current)
+            previous = dateKey
+        }
+        return best
+    }
+
+    private fun previousDateKey(dateKey: String): String? {
+        return try {
+            val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val date = format.parse(dateKey) ?: return null
+            val previous = Date(date.time - 24L * 60L * 60L * 1000L)
+            format.format(previous)
+        } catch (_: Exception) {
+            null
+        }
     }
 }

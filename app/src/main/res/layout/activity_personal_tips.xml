@@ -33,6 +33,15 @@
             android:textColor="@color/lime_10"
             android:textSize="38sp" />
 
+        <TextView
+            android:id="@+id/tipsDailySummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:textColor="@color/lime_8"
+            android:textSize="13sp" />
+
         <LinearLayout
             android:id="@+id/tipsContainer"
             android:layout_width="match_parent"

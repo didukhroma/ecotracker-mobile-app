@@ -95,7 +95,7 @@ object FirebaseSync {
     fun signOut(context: Context) {
         FirebaseAuth.getInstance().signOut()
         LearningProgressStore.setCompletedIds(context, emptySet())
-        PersonalTipsStore.setSelectedIds(context, emptySet())
+        PersonalTipsStore.clear(context)
         AchievementStore.setClaimedIds(context, emptySet())
         CarbonTrackerStore.clearLatestCheckIn(context)
         CarbonTrackerStore.setHistory(context, emptyList())
@@ -163,7 +163,8 @@ object FirebaseSync {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         if (!isAvailable(context)) return
 
-        val selectedTipIds = PersonalTipsStore.getSelectedIds(context).toList()
+        val stats = PersonalTipsStore.getStats(context)
+        val dailyCompletions = stats.dailyCompletions.mapValues { (_, ids) -> ids.toList().sorted() }
         FirebaseFirestore.getInstance()
             .collection("users")
             .document(uid)
@@ -171,7 +172,12 @@ object FirebaseSync {
             .document("personalTips")
             .set(
                 mapOf(
-                    "selectedTipIds" to selectedTipIds,
+                    "todayKey" to stats.todayKey,
+                    "todaySelectedTipIds" to stats.todaySelectedIds.toList().sorted(),
+                    "dailyCompletions" to dailyCompletions,
+                    "totalCompletionEvents" to stats.totalCompletionEvents,
+                    "currentStreak" to stats.currentStreak,
+                    "bestStreak" to stats.bestStreak,
                     "updatedAt" to FieldValue.serverTimestamp()
                 )
             )
@@ -508,9 +514,20 @@ object FirebaseSync {
             .document("personalTips")
             .get()
             .addOnSuccessListener { snap ->
-                val ids = snap.get("selectedTipIds") as? List<*>
-                val parsed = ids?.filterIsInstance<String>()?.toSet().orEmpty()
-                PersonalTipsStore.setSelectedIds(context, parsed)
+                val dailyCompletions = (snap.get("dailyCompletions") as? Map<*, *>)?.mapNotNull { (key, value) ->
+                    val dateKey = key as? String ?: return@mapNotNull null
+                    val ids = (value as? List<*>)?.filterIsInstance<String>()?.toSet().orEmpty()
+                    dateKey to ids
+                }?.toMap()
+
+                if (!dailyCompletions.isNullOrEmpty()) {
+                    PersonalTipsStore.setDailyCompletions(context, dailyCompletions)
+                } else {
+                    val ids = (snap.get("todaySelectedTipIds") as? List<*>)?.filterIsInstance<String>()?.toSet()
+                        ?: (snap.get("selectedTipIds") as? List<*>)?.filterIsInstance<String>()?.toSet()
+                        ?: emptySet()
+                    PersonalTipsStore.setSelectedIds(context, ids)
+                }
                 onDone()
             }
             .addOnFailureListener { onDone() }

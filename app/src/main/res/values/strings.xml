@@ -140,6 +140,7 @@
     <string name="personal_tips_title">Personal tips</string>
     <string name="personal_tips_screen_title">Personal tips</string>
     <string name="personal_tips_subtitle">Here\'s a breakdown of the steps you have completed since you first created an account</string>
+    <string name="personal_tips_daily_summary">Resets daily. Today: %1$d/%2$d completed. Current streak: %3$d days.</string>
     <string name="learning_way_title">Learning way</string>
     <string name="learning_way_subtitle">Here\'s a breakdown of the steps you have completed since you first created an account</string>
     <string name="learning_platform_title">Learning platform</string>

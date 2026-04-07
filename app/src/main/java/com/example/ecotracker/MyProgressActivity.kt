@@ -249,12 +249,32 @@ object MyProgressRepository {
     // Integration point: replace with server endpoint response.
     fun getProgressData(context: Context, answers: OnboardingAnswers?): ProgressData {
         val snapshot = CarbonTrackerCalculator.calculate(context, answers)
+        val tipsStats = PersonalTipsStore.getStats(context)
+        val latestCheckIn = CarbonTrackerStore.getLatestCheckIn(context)
         val categoriesById = snapshot.categories.associateBy { it.id }
         val transport = categoriesById["transport"]?.kgPerYear ?: 0.0
         val food = categoriesById["food"]?.kgPerYear ?: 0.0
         val home = categoriesById["home"]?.kgPerYear ?: 0.0
         val purchases = categoriesById["purchases"]?.kgPerYear ?: 0.0
         val services = categoriesById["services"]?.kgPerYear ?: 0.0
+        val youSegments = buildUserSegments(
+            transport = transport,
+            food = food,
+            home = home,
+            purchases = purchases,
+            services = services,
+            natureOffset = snapshot.natureOffsetKgPerYear,
+            flightsPerYear = latestCheckIn?.flightsPerYear ?: 0
+        )
+        val countrySegments = buildCountryBenchmarkSegments(
+            country = answers?.country,
+            totalKg = snapshot.countryAverageKgPerYear
+        )
+        val globalSegments = buildGlobalBenchmarkSegments(snapshot.globalAverageKgPerYear)
+        val estimatedAirTravelKg = youSegments.airTravel
+        val estimatedLandTravelKg = youSegments.landTravel
+        val homeEnergyKg = youSegments.energy
+        val directHomeKg = youSegments.home
         val youTons = snapshot.totalKgPerYear / 1000.0
         val countryTons = snapshot.countryAverageKgPerYear / 1000.0
         val globalTons = snapshot.globalAverageKgPerYear / 1000.0
@@ -271,30 +291,9 @@ object MyProgressRepository {
         return ProgressData(
             relativeEmissions = RelativeEmissions(youTons, countryTons, globalTons),
             relativeEmissionsParts = RelativeEmissionParts(
-                you = listOf(
-                    transport * 0.82,
-                    transport * 0.18,
-                    food,
-                    home * 0.65,
-                    (home * 0.35) + (services * 0.45),
-                    purchases + (services * 0.55)
-                ).map { it / 1000.0 },
-                countryCitizen = listOf(
-                    countryTons * 0.26,
-                    countryTons * 0.08,
-                    countryTons * 0.19,
-                    countryTons * 0.18,
-                    countryTons * 0.12,
-                    countryTons * 0.17
-                ),
-                global = listOf(
-                    globalTons * 0.24,
-                    globalTons * 0.06,
-                    globalTons * 0.22,
-                    globalTons * 0.20,
-                    globalTons * 0.11,
-                    globalTons * 0.17
-                )
+                you = youSegments.toTonsList(),
+                countryCitizen = countrySegments.toTonsList(),
+                global = globalSegments.toTonsList()
             ),
             comparisonVsCitizen = snapshot.comparisonVsCountry.replace("%", " %"),
             comparisonVsGlobal = snapshot.comparisonVsGlobal.replace("%", " %"),
@@ -306,12 +305,20 @@ object MyProgressRepository {
                 BreakdownFilter(
                     label = "Showing transport",
                     rows = listOf(
-                        MetricRow("Car", transport * 0.68),
-                        MetricRow("Bus", transport * 0.08),
-                        MetricRow("Rail", transport * 0.07),
-                        MetricRow("Ferry", transport * 0.03),
-                        MetricRow("Tube and Light rail", transport * 0.07),
-                        MetricRow("Taxi", transport * 0.07)
+                        MetricRow("Car", estimatedLandTravelKg * 0.68),
+                        MetricRow("Bus", estimatedLandTravelKg * 0.08),
+                        MetricRow("Rail", estimatedLandTravelKg * 0.07),
+                        MetricRow("Ferry", estimatedLandTravelKg * 0.03),
+                        MetricRow("Tube and Light rail", estimatedLandTravelKg * 0.07),
+                        MetricRow("Taxi", estimatedLandTravelKg * 0.07)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing air travel",
+                    rows = listOf(
+                        MetricRow("Short-haul flights", estimatedAirTravelKg * 0.32),
+                        MetricRow("Medium-haul flights", estimatedAirTravelKg * 0.38),
+                        MetricRow("Long-haul flights", estimatedAirTravelKg * 0.30)
                     )
                 ),
                 BreakdownFilter(
@@ -325,12 +332,19 @@ object MyProgressRepository {
                 BreakdownFilter(
                     label = "Showing home",
                     rows = listOf(
-                        MetricRow("Gas", home * 0.24),
-                        MetricRow("Electricity", home * 0.28),
-                        MetricRow("Waste", home * 0.10),
-                        MetricRow("Home improvement", home * 0.16),
-                        MetricRow("Water", home * 0.12),
-                        MetricRow("Oil", home * 0.10)
+                        MetricRow("Heating and cooling", directHomeKg * 0.42),
+                        MetricRow("Waste", directHomeKg * 0.18),
+                        MetricRow("Home improvement", directHomeKg * 0.24),
+                        MetricRow("Water", directHomeKg * 0.16)
+                    )
+                ),
+                BreakdownFilter(
+                    label = "Showing energy",
+                    rows = listOf(
+                        MetricRow("Electricity", homeEnergyKg * 0.52),
+                        MetricRow("Gas", homeEnergyKg * 0.28),
+                        MetricRow("Oil", homeEnergyKg * 0.12),
+                        MetricRow("Other fuels", homeEnergyKg * 0.08)
                     )
                 ),
                 BreakdownFilter(
@@ -362,14 +376,14 @@ object MyProgressRepository {
                     )
                 )
             ),
-            personalTipsCount = PersonalTipsStore.selectedCount(context),
+            personalTipsCount = tipsStats.totalCompletionEvents,
             personalTips = listOf(
-                MetricRow("Transport", if (PersonalTipsStore.isSelected(context, "transport_tip")) 1.0 else 0.0, 1.0),
-                MetricRow("Home energy", if (PersonalTipsStore.isSelected(context, "energy_tip")) 1.0 else 0.0, 1.0),
-                MetricRow("Food", if (PersonalTipsStore.isSelected(context, "food_tip")) 1.0 else 0.0, 1.0),
-                MetricRow("Shopping", if (PersonalTipsStore.isSelected(context, "shopping_tip")) 1.0 else 0.0, 1.0),
-                MetricRow("Home water", if (PersonalTipsStore.isSelected(context, "water_tip")) 1.0 else 0.0, 1.0),
-                MetricRow("Trees", if (PersonalTipsStore.isSelected(context, "trees_tip")) 1.0 else 0.0, 1.0)
+                MetricRow("Transport", PersonalTipsStore.completionCountForTip(context, "transport_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble()),
+                MetricRow("Home energy", PersonalTipsStore.completionCountForTip(context, "energy_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble()),
+                MetricRow("Food", PersonalTipsStore.completionCountForTip(context, "food_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble()),
+                MetricRow("Shopping", PersonalTipsStore.completionCountForTip(context, "shopping_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble()),
+                MetricRow("Home water", PersonalTipsStore.completionCountForTip(context, "water_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble()),
+                MetricRow("Trees", PersonalTipsStore.completionCountForTip(context, "trees_tip").toDouble(), tipsStats.activeDaysCount.coerceAtLeast(1).toDouble())
             ),
             learningCount = LearningProgressStore.getTotalCompleted(context),
             learning = listOf(
@@ -380,5 +394,110 @@ object MyProgressRepository {
                 MetricRow("Trees", LearningProgressStore.getCategoryCompleted(context, "trees").toDouble(), LearningRepository.getCategory("trees")?.lessons?.size?.toDouble() ?: 1.0)
             )
         )
+    }
+
+    private fun buildUserSegments(
+        transport: Double,
+        food: Double,
+        home: Double,
+        purchases: Double,
+        services: Double,
+        natureOffset: Double,
+        flightsPerYear: Int
+    ): EmissionSegments {
+        val estimatedAirTravel = if (flightsPerYear > 0) {
+            (flightsPerYear * 180.0).coerceAtMost(transport * 0.7)
+        } else {
+            0.0
+        }
+        val landTravel = (transport - estimatedAirTravel).coerceAtLeast(0.0)
+
+        val energy = (home * 0.62)
+        val directHome = (home * 0.38)
+        val purchasesWithServices = purchases + services
+
+        val positiveSegments = EmissionSegments(
+            landTravel = landTravel,
+            airTravel = estimatedAirTravel,
+            food = food,
+            home = directHome,
+            energy = energy,
+            purchases = purchasesWithServices
+        )
+        return positiveSegments.applyOffset(natureOffset)
+    }
+
+    private fun buildCountryBenchmarkSegments(country: String?, totalKg: Double): EmissionSegments {
+        val shares = when (country?.trim()) {
+            "United States" -> doubleArrayOf(0.23, 0.11, 0.14, 0.14, 0.14, 0.24)
+            "Canada" -> doubleArrayOf(0.24, 0.08, 0.15, 0.17, 0.15, 0.21)
+            "Germany" -> doubleArrayOf(0.18, 0.07, 0.18, 0.18, 0.17, 0.22)
+            "United Kingdom" -> doubleArrayOf(0.17, 0.09, 0.18, 0.17, 0.15, 0.24)
+            "France" -> doubleArrayOf(0.17, 0.06, 0.20, 0.17, 0.13, 0.27)
+            "Italy" -> doubleArrayOf(0.19, 0.07, 0.20, 0.16, 0.12, 0.26)
+            "Spain" -> doubleArrayOf(0.18, 0.08, 0.21, 0.15, 0.12, 0.26)
+            "Poland" -> doubleArrayOf(0.19, 0.05, 0.18, 0.20, 0.17, 0.21)
+            "Hungary" -> doubleArrayOf(0.19, 0.05, 0.19, 0.20, 0.15, 0.22)
+            "Ukraine" -> doubleArrayOf(0.16, 0.03, 0.24, 0.22, 0.14, 0.21)
+            "India" -> doubleArrayOf(0.15, 0.03, 0.27, 0.21, 0.12, 0.22)
+            else ->
+                doubleArrayOf(0.21, 0.06, 0.19, 0.19, 0.14, 0.21)
+        }
+        return EmissionSegments.fromShares(totalKg, shares)
+    }
+
+    private fun buildGlobalBenchmarkSegments(totalKg: Double): EmissionSegments {
+        return EmissionSegments.fromShares(
+            totalKg,
+            doubleArrayOf(0.18, 0.05, 0.24, 0.18, 0.12, 0.23)
+        )
+    }
+}
+
+private data class EmissionSegments(
+    val landTravel: Double,
+    val airTravel: Double,
+    val food: Double,
+    val home: Double,
+    val energy: Double,
+    val purchases: Double
+) {
+    fun toTonsList(): List<Double> = listOf(
+        landTravel / 1000.0,
+        airTravel / 1000.0,
+        food / 1000.0,
+        home / 1000.0,
+        energy / 1000.0,
+        purchases / 1000.0
+    )
+
+    fun totalKg(): Double = landTravel + airTravel + food + home + energy + purchases
+
+    fun applyOffset(offsetKg: Double): EmissionSegments {
+        val total = totalKg()
+        if (offsetKg <= 0.0 || total <= 0.0) return this
+        val remainingRatio = ((total - offsetKg).coerceAtLeast(0.0) / total).coerceIn(0.0, 1.0)
+        return EmissionSegments(
+            landTravel = landTravel * remainingRatio,
+            airTravel = airTravel * remainingRatio,
+            food = food * remainingRatio,
+            home = home * remainingRatio,
+            energy = energy * remainingRatio,
+            purchases = purchases * remainingRatio
+        )
+    }
+
+    companion object {
+        fun fromShares(totalKg: Double, shares: DoubleArray): EmissionSegments {
+            val normalized = if (shares.sum() == 0.0) doubleArrayOf(1.0, 0.0, 0.0, 0.0, 0.0, 0.0) else shares
+            return EmissionSegments(
+                landTravel = totalKg * normalized[0],
+                airTravel = totalKg * normalized[1],
+                food = totalKg * normalized[2],
+                home = totalKg * normalized[3],
+                energy = totalKg * normalized[4],
+                purchases = totalKg * normalized[5]
+            )
+        }
     }
 }

@@ -1,6 +1,32 @@
-# EcoTracker (Android, Kotlin)
+# EcoTracker Android
 
-Kotlin + XML Android app with Firebase auth and Firestore profile/onboarding storage.
+Native Android app built with Kotlin + XML.
+
+## Stack
+
+- Kotlin
+- Android Views / XML layouts
+- Firebase Authentication
+- Cloud Firestore
+
+## Requirements
+
+- Android Studio
+- JDK 17
+- Android SDK 34
+
+## App Id
+
+- `com.example.ecotracker`
+
+## Firebase setup
+
+1. Create a Firebase project for package `com.example.ecotracker`
+2. Enable `Email/Password` in Firebase Authentication
+3. Create a Firestore database
+4. Put `google-services.json` into `app/google-services.json`
+
+If `google-services.json` is missing, Firebase flows will not work.
 
 ## Run
 
@@ -9,21 +35,34 @@ Kotlin + XML Android app with Firebase auth and Firestore profile/onboarding sto
 .\gradlew.bat installDebug
 ```
 
-APK:
+## APK
 
-`app/build/outputs/apk/debug/app-debug.apk`
+- `app/build/outputs/apk/debug/app-debug.apk`
+- `app/build/outputs/apk/debug/ecotracker.apk`
 
-## Firebase
+## Main flows
 
-- Package: `com.example.ecotracker`
-- Put `google-services.json` in `app/`
-- Enable Email/Password in Firebase Authentication
-- Create Firestore database
+- Sign up / Sign in / Forgot password
+- 5-step onboarding with validation
+- Home screen with sidebar
+- Carbon emission tracker
+- My progress
+- Learning platform
+- Personal tips
+- Achievements
+- Settings
 
-## Main modules
+## Data stored in Firestore
 
-- Auth: Sign In / Sign Up / Forgot password
-- Onboarding: 5 steps + validation + Firestore save
-- Home + sidebar navigation
-- My Progress, Learning, Personal Tips, Achievements
-- Settings (profile edit + Firestore save)
+- `users/{uid}/profile/account`
+- `users/{uid}/profile/onboarding`
+- `users/{uid}/profile/learning`
+- `users/{uid}/profile/personalTips`
+- `users/{uid}/profile/achievements`
+- `users/{uid}/profile/carbonTracker`
+
+## Notes
+
+- Carbon tracker is calculated on the client
+- `My progress` uses the same tracker, learning progress, and personal tips state
+- Logout clears local user state and signs out from Firebase
