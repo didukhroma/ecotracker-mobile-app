@@ -53,12 +53,9 @@ class LearningLessonActivity : AppCompatActivity() {
         }
 
         val markButton = findViewById<MaterialButton>(R.id.markCompletedButton)
-        val isCompleted = LearningProgressStore.isCompleted(this, lesson.id)
-        if (isCompleted) {
-            markButton.text = getString(R.string.completed)
-            markButton.isEnabled = false
-            markButton.alpha = 0.6f
-        }
+        LearningProgressStore.markCompleted(this, lesson.id)
+        markButton.isEnabled = false
+        markButton.alpha = 0.6f
 
         markButton.setOnClickListener {
             LearningProgressStore.markCompleted(this, lesson.id)

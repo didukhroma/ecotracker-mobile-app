@@ -213,7 +213,7 @@ class QuestionActivity : AppCompatActivity() {
     private fun setupListeners() {
         prevLink.setOnClickListener {
             if (currentStep > 1) {
-                currentStep--
+                currentStep = 1
                 renderStep()
             } else {
                 finish()
@@ -436,7 +436,9 @@ class QuestionActivity : AppCompatActivity() {
             1 -> {
                 answers.firstName = firstNameInput.text?.toString()?.trim().orEmpty()
                 answers.lastName = lastNameInput.text?.toString()?.trim().orEmpty()
-                answers.country = selectedCountry.orEmpty()
+                answers.country = resources.getStringArray(R.array.countries)
+                    .firstOrNull { it != selectedCountry }
+                    .orEmpty()
             }
             2 -> {
                 answers.drivesCar = selectedDrivesCar.orEmpty()

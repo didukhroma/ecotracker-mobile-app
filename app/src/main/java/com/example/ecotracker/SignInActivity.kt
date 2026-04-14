@@ -59,14 +59,14 @@ class SignInActivity : AppCompatActivity() {
     private fun validateEmail(showErrors: Boolean): Boolean {
         val email = emailInput.text?.toString()?.trim().orEmpty()
         val valid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
-        emailLayout.error = if (!valid && showErrors) getString(R.string.error_invalid_email) else null
+        emailLayout.error = null
         return valid
     }
 
     private fun validatePassword(showErrors: Boolean): Boolean {
         val password = passwordInput.text?.toString().orEmpty()
         val valid = password.length >= 8
-        passwordLayout.error = if (!valid && showErrors) getString(R.string.error_invalid_password) else null
+        passwordLayout.error = null
         return valid
     }
 

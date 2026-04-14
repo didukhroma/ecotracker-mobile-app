@@ -42,18 +42,18 @@ class HomeActivity : AppCompatActivity() {
         }
         findViewById<TextView>(R.id.sidebarLearningPlatform).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, LearningPlatformActivity::class.java))
+            startActivity(Intent(this, PersonalTipsActivity::class.java))
         }
         findViewById<TextView>(R.id.sidebarPersonalTips).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, PersonalTipsActivity::class.java))
+            startActivity(Intent(this, LearningPlatformActivity::class.java))
         }
         findViewById<TextView>(R.id.learnMoreText).setOnClickListener {
             startActivity(Intent(this, PersonalTipsActivity::class.java))
         }
         findViewById<TextView>(R.id.sidebarCommunity).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, CommunityProfileActivity::class.java))
+            finishAffinity()
         }
         findViewById<TextView>(R.id.sidebarAchievements).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -65,10 +65,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<android.view.View>(R.id.logoutText).setOnClickListener {
-            FirebaseSync.signOut(this)
-            HomeCacheStore.invalidate(this)
-            OnboardingSessionStore.latestPayload = null
-            finishAffinity()
+            drawerLayout.closeDrawer(GravityCompat.START)
         }
 
         findViewById<ImageView>(R.id.homeImage).loadAsset("home.png")

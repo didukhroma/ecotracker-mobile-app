@@ -62,21 +62,9 @@ class SettingsActivity : AppCompatActivity() {
         lastNameInput.setText(lastName)
 
         saveButton.isEnabled = false
-        FirebaseSync.updateEditableProfile(
-            context = this,
-            firstName = firstName,
-            lastName = lastName,
-            photoBase64 = photoBase64,
-            onSuccess = {
-                saveButton.isEnabled = true
-                Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
-                finish()
-            },
-            onError = { message ->
-                saveButton.isEnabled = true
-                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-            }
-        )
+        saveButton.isEnabled = true
+        Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
+        finish()
     }
 
     private fun applyBitmap(source: Bitmap) {
