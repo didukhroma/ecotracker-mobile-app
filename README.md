@@ -40,6 +40,17 @@ If `google-services.json` is missing, Firebase flows will not work.
 - `app/build/outputs/apk/debug/app-debug.apk`
 - `app/build/outputs/apk/debug/ecotracker.apk`
 
+## Downloads
+
+Test builds are published in GitHub Releases.
+
+- Releases page: https://github.com/didukhroma/ecotracker-mobile-app/releases
+- Latest APK: add the direct release asset link here after publishing
+
+Notes:
+- APK files are distributed through GitHub Releases, not stored in the repository.
+- Use the latest release asset for Android testing.
+
 ## Main flows
 
 - Sign up / Sign in / Forgot password
